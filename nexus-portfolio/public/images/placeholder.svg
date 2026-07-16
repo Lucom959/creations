@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-label="Imagem do projeto em breve">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#D4A574"/>
+      <stop offset="0.5" stop-color="#B85C3C"/>
+      <stop offset="1" stop-color="#A89BD2"/>
+    </linearGradient>
+    <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="2" fill="#F5F1E8" fill-opacity="0.18"/>
+    </pattern>
+  </defs>
+  <rect width="800" height="600" fill="url(#g)"/>
+  <rect width="800" height="600" fill="url(#dots)"/>
+  <g fill="#F5F1E8" fill-opacity="0.92" font-family="Georgia, 'Cormorant Garamond', serif" text-anchor="middle">
+    <text x="400" y="290" font-size="120" font-weight="700" letter-spacing="8">◇</text>
+    <text x="400" y="380" font-size="44" font-weight="600" letter-spacing="6">NEXUS</text>
+    <text x="400" y="420" font-size="20" fill-opacity="0.75" font-family="Arial, sans-serif" letter-spacing="3">imagem em breve</text>
+  </g>
+</svg>
