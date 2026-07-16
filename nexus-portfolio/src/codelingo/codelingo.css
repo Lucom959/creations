@@ -1,0 +1,234 @@
+/* CodeLingo — tema preto + âmbar, escopado sob .cl-root */
+
+.cl-root {
+  --cl-bg: #0b0b0b;
+  --cl-surface: #151515;
+  --cl-card: #1b1b1b;
+  --cl-border: #2a2a2a;
+  --cl-text: #f5f5f5;
+  --cl-muted: #9a9a9a;
+  --cl-amber: #ffd54f;
+  --cl-amber-600: #ffc107;
+  --cl-amber-700: #ffb300;
+  --cl-amber-800: #e69500;
+  --cl-glass: rgba(255, 255, 255, 0.04);
+
+  background: var(--cl-bg);
+  color: var(--cl-text);
+  min-height: 100vh;
+  font-family: var(--font-inter), "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.cl-root.cl-light {
+  --cl-bg: #ffffff;
+  --cl-surface: #f5f5f5;
+  --cl-card: #fafafa;
+  --cl-border: #e5e5e5;
+  --cl-text: #0b0b0b;
+  --cl-muted: #6b6b6b;
+  --cl-glass: rgba(0, 0, 0, 0.03);
+}
+
+.cl-root * {
+  border-color: var(--cl-border);
+}
+
+.cl-display {
+  font-family: var(--font-grotesk), var(--font-inter), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Superfícies */
+.cl-card {
+  background: var(--cl-card);
+  border: 1px solid var(--cl-border);
+  border-radius: 1rem;
+}
+.cl-surface {
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+}
+.cl-glass {
+  background: var(--cl-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--cl-border);
+}
+
+/* Botões */
+.cl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.85rem;
+  font-weight: 600;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+}
+.cl-btn-amber {
+  background: linear-gradient(180deg, var(--cl-amber) 0%, var(--cl-amber-700) 100%);
+  color: #1a1400;
+  box-shadow: 0 4px 0 var(--cl-amber-800), 0 8px 20px rgba(255, 179, 0, 0.25);
+}
+.cl-btn-amber:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--cl-amber-800), 0 12px 26px rgba(255, 179, 0, 0.35);
+}
+.cl-btn-amber:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--cl-amber-800);
+}
+.cl-btn-ghost {
+  background: transparent;
+  border: 1px solid var(--cl-border);
+  color: var(--cl-text);
+}
+.cl-btn-ghost:hover {
+  border-color: var(--cl-amber);
+  color: var(--cl-amber);
+}
+.cl-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Chips / badges */
+.cl-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--cl-glass);
+  border: 1px solid var(--cl-border);
+}
+
+.cl-amber { color: var(--cl-amber); }
+.cl-muted { color: var(--cl-muted); }
+
+/* Barra de progresso */
+.cl-progress {
+  height: 0.75rem;
+  background: var(--cl-surface);
+  border-radius: 9999px;
+  overflow: hidden;
+  border: 1px solid var(--cl-border);
+}
+.cl-progress > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--cl-amber-800), var(--cl-amber));
+  border-radius: 9999px;
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Inputs */
+.cl-input {
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: var(--cl-text);
+  width: 100%;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  font-family: inherit;
+}
+.cl-input:focus {
+  border-color: var(--cl-amber);
+  box-shadow: 0 0 0 3px rgba(255, 213, 79, 0.15);
+}
+
+/* Scrollbar */
+.cl-root ::-webkit-scrollbar { width: 10px; height: 10px; }
+.cl-root ::-webkit-scrollbar-track { background: transparent; }
+.cl-root ::-webkit-scrollbar-thumb {
+  background: #333; border-radius: 9999px; border: 2px solid var(--cl-bg);
+}
+.cl-root ::-webkit-scrollbar-thumb:hover { background: var(--cl-amber-800); }
+
+/* Animações */
+@keyframes cl-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes cl-pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  70% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes cl-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+@keyframes cl-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 213, 79, 0.4); }
+  50% { box-shadow: 0 0 24px 4px rgba(255, 213, 79, 0.25); }
+}
+@keyframes cl-confetti-fall {
+  0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+@keyframes cl-spin { to { transform: rotate(360deg); } }
+
+.cl-fade-up { animation: cl-fade-up 0.5s ease-out both; }
+.cl-pop { animation: cl-pop 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.cl-shake { animation: cl-shake 0.4s ease; }
+.cl-glow { animation: cl-glow 2s ease-in-out infinite; }
+
+.cl-node-hover {
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease;
+}
+.cl-node-hover:hover { transform: translateY(-3px) scale(1.03); }
+
+/* Node da trilha */
+.cl-node {
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.8rem;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.25s ease;
+  cursor: pointer;
+}
+.cl-node-locked {
+  background: var(--cl-surface);
+  border: 2px solid var(--cl-border);
+  filter: grayscale(1);
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.cl-node-active {
+  background: radial-gradient(circle at 30% 30%, #2a2a2a, #161616);
+  border: 3px solid var(--cl-amber);
+  box-shadow: 0 6px 0 var(--cl-amber-800), 0 10px 24px rgba(255, 179, 0, 0.25);
+}
+.cl-node-done {
+  background: linear-gradient(180deg, var(--cl-amber), var(--cl-amber-700));
+  border: 3px solid var(--cl-amber-800);
+  box-shadow: 0 5px 0 var(--cl-amber-800);
+}
+.cl-node-active:hover, .cl-node-done:hover { transform: translateY(-2px) scale(1.05); }
+
+.cl-tick {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--cl-amber);
+  color: #1a1400;
+  display: grid;
+  place-items: center;
+  font-size: 0.75rem;
+  border: 2px solid var(--cl-bg);
+}

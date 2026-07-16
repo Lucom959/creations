@@ -19,17 +19,18 @@ export interface Project {
 
 export const projects: Project[] = [
   {
-    id: "projeto-1",
-    title: "Projeto 1",
-    description: "Em desenvolvimento",
-    longDescription: "Descrição será adicionada em breve...",
+    id: "codelingo",
+    title: "CodeLingo",
+    description: "O Duolingo dos códigos: aprenda Morse, binário e criptografia jogando.",
+    longDescription:
+      "CodeLingo é um app gamificado para aprender códigos, cifras e sistemas de comunicação — do Código Morse à cifra de Vigenère. Traz uma árvore de aprendizado estilo Duolingo com 20 cursos, exercícios auto-gerados de dificuldade crescente, engine real de codificação/decodificação, sistema de XP, níveis, ligas (Bronze a Lendário), streaks, dezenas de conquistas, estatísticas com gráficos e o tutor CipherBot. Visual premium em preto e âmbar, modo claro/escuro, sons via Web Audio e animações. Tudo roda no navegador, sem backend.",
     category: "Apps",
-    status: "Planned",
+    status: "Published",
     image: "/images/placeholder.svg",
-    tags: ["tag"],
-    links: {},
-    featured: false,
-    date: "2026-01-01",
+    tags: ["Next.js", "TypeScript", "Gamificação", "Criptografia", "Educação"],
+    links: { live: "/codelingo", demo: "/codelingo" },
+    featured: true,
+    date: "2026-07-16",
   },
   {
     id: "projeto-2",

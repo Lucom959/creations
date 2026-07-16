@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const socials = [
   { label: "GitHub", href: "#", icon: GitHubIcon },
@@ -8,7 +11,9 @@ const socials = [
 ];
 
 export default function Footer() {
+  const pathname = usePathname();
   const year = 2026;
+  if (pathname.startsWith("/codelingo")) return null;
   return (
     <footer
       id="contact"

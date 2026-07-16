@@ -31,6 +31,9 @@ export default function Header() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // O CodeLingo é um app full-screen com seu próprio chrome.
+  if (pathname.startsWith("/codelingo")) return null;
+
   const toggleTheme = () => {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
