@@ -55,11 +55,27 @@ export function askCipherBot(input: string): BotReply {
 
   const code = findCode(text);
 
-  // Explicar
-  if (/\bexplic|como funciona|o que é|o que e|história|historia\b/.test(lower)) {
-    if (!code) return { text: "Sobre qual código? Ex.: \"explique o base64\"." };
+  // Explicar (ensina antes de qualquer exercício: intro → história → como funciona → exemplo)
+  if (/\bexplic|como funciona|o que é|o que e|história|historia|ensina|aprend/.test(lower)) {
+    if (!code) return { text: "Sobre qual código você quer uma aula? Ex.: \"explique o base64\" ou \"como funciona o morse?\"." };
+    const example = code.encode ? `\n\n✏️ Exemplo: "OI" fica assim →` : "";
     return {
-      text: `**${code.name}** — ${code.tagline}\n\n${code.content.howItWorks}\n\n🕰️ Origem: ${code.content.origin} Inventor: ${code.content.inventor}\n\n💡 ${code.content.curiosities[0]}`,
+      text:
+        `**${code.name}** — ${code.tagline}\n\n` +
+        `🕰️ Origem: ${code.content.origin} Inventor: ${code.content.inventor}\n\n` +
+        `⚙️ Como funciona: ${code.content.howItWorks}\n\n` +
+        `💡 Curiosidade: ${code.content.curiosities[0]}${example}`,
+      code: code.encode ? code.encode("OI") : code.alphabetHint,
+    };
+  }
+
+  // Dúvida sobre erro/acerto — ensina de novo em vez de só corrigir
+  if (/\bpor que (errei|acertei)|onde errei|expliqu?e (o )?erro|não entendi|nao entendi\b/.test(lower)) {
+    if (!code) {
+      return { text: "Me diga qual código — assim eu retomo a explicação do zero e mostro onde costuma confundir. Ex.: \"não entendi a cifra de vigenère\"." };
+    }
+    return {
+      text: `Sem problema, vamos rever ${code.name} com calma:\n\n${code.content.encodeGuide}${code.decode ? `\n\nPara o caminho inverso: ${code.content.decodeGuide}` : ""}\n\nRefaça a lição de "Aprender" no curso se quiser a explicação completa de novo — ela está sempre disponível.`,
       code: code.alphabetHint,
     };
   }
@@ -100,16 +116,16 @@ export function askCipherBot(input: string): BotReply {
     return { text: `Dica de ${code.name}: ${code.content.encodeGuide}`, code: code.alphabetHint };
   }
 
-  // Menção a código sem verbo claro → explica
+  // Menção a código sem verbo claro → oferece explicar primeiro (ensinar antes de praticar)
   if (code) {
     return {
-      text: `Quer **codificar**, **decodificar**, **explicar** ou um **desafio** de ${code.name}? É só pedir.`,
+      text: `Quer que eu **explique** ${code.name} do zero primeiro? Também posso **codificar**, **decodificar** ou te dar um **desafio** depois que você entender a teoria.`,
       code: code.alphabetHint,
     };
   }
 
   return {
-    text: "Não entendi 100%, mas posso: codificar, decodificar, explicar códigos ou criar desafios. Ex.: \"codifique 'NEXUS' em hexadecimal\".",
+    text: "Não entendi 100%. Posso explicar um código do zero, codificar/decodificar um texto ou criar um desafio. Ex.: \"explique o hexadecimal\".",
   };
 }
 

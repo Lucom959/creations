@@ -11,18 +11,21 @@ interface Msg {
 }
 
 const SUGGESTIONS = [
-  "Codifique 'NEXUS' em morse",
   "Explique a cifra de César",
-  "Decodifique 01001111 01001001 do binário",
+  "Como funciona o Código Morse?",
+  "Por que errei essa resposta?",
   "Me dê um desafio de vigenère",
 ];
 
-/** Tutor flutuante CipherBot (por regras). */
+/** Tutor flutuante CipherBot — atua como professor, não só como calculadora. */
 export default function CipherBot() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [msgs, setMsgs] = useState<Msg[]>([
-    { from: "bot", text: "Oi! Sou o CipherBot 🤖. Posso codificar, decodificar, explicar códigos ou te desafiar. O que vamos decifrar hoje?" },
+    {
+      from: "bot",
+      text: "Oi! Sou o CipherBot 🤖, seu professor de códigos. Antes de qualquer exercício, eu explico: o que é o código, como ele funciona e mostro exemplos. Depois praticamos juntos. Sobre qual código quer aprender?",
+    },
   ]);
   const endRef = useRef<HTMLDivElement>(null);
 

@@ -8,9 +8,10 @@ import { getMuted, setMuted, sfx, resumeAudio } from "@/codelingo/sound";
 import CipherBot from "./CipherBot";
 
 const nav = [
-  { href: "/codelingo", label: "Aprender", icon: "🧠" },
-  { href: "/codelingo/stats", label: "Estatísticas", icon: "📊" },
-  { href: "/codelingo/profile", label: "Perfil", icon: "👤" },
+  { href: "/codelingo", label: "Início", icon: "🏠", exact: true },
+  { href: "/codelingo/courses", label: "Cursos", icon: "🗂️", exact: false },
+  { href: "/codelingo/stats", label: "Estatísticas", icon: "📊", exact: false },
+  { href: "/codelingo/profile", label: "Perfil", icon: "👤", exact: false },
 ];
 
 export default function Shell({ children }: { children: React.ReactNode }) {
@@ -100,7 +101,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       >
         <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", justifyContent: "space-around", padding: "8px 8px calc(8px + env(safe-area-inset-bottom))" }}>
           {nav.map((item) => {
-            const active = item.href === "/codelingo" ? pathname === "/codelingo" : pathname.startsWith(item.href);
+            const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}

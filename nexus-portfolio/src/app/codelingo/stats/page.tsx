@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { CODES } from "@/codelingo/codes";
-import { leagueFromXp, levelFromXp, useStore } from "@/codelingo/store";
+import { isCourseComplete, leagueFromXp, levelFromXp, useStore } from "@/codelingo/store";
 
 const AMBER = "#FFD54F";
 
@@ -25,7 +25,7 @@ export default function StatsPage() {
 
   const level = levelFromXp(p.xp);
   const league = leagueFromXp(p.xp);
-  const completed = Object.values(p.courses).filter((c) => c.completed).length;
+  const completed = Object.values(p.courses).filter((c) => isCourseComplete(c)).length;
   const mastered = Object.values(p.courses).filter((c) => c.mastered).length;
   const totalAnswered = p.history.reduce((s, h) => s + h.total, 0);
   const precision = totalAnswered > 0 ? Math.round((p.totalCorrect / totalAnswered) * 100) : 0;
@@ -90,7 +90,7 @@ export default function StatsPage() {
           </p>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
             {CODES.map((c) => {
-              const done = p.courses[c.id]?.completed;
+              const done = isCourseComplete(p.courses[c.id]);
               const mast = p.courses[c.id]?.mastered;
               return (
                 <span key={c.id} title={c.name} style={{ fontSize: "1.3rem", opacity: done ? 1 : 0.3, filter: mast ? "drop-shadow(0 0 6px rgba(255,213,79,0.6))" : "none" }}>

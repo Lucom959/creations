@@ -2,8 +2,9 @@
 
 /**
  * Estado global do CodeLingo (React Context) com persistência em localStorage.
- * Centraliza XP, níveis, ligas, streak, metas diárias, cursos e conquistas.
- * (Sincronização em nuvem real fica como evolução futura — aqui é local-first.)
+ * Cada CÓDIGO é um curso independente: progresso, XP e lições próprios.
+ * O XP global (perfil/ligas) soma o de todos os cursos, mas o progresso de um
+ * curso nunca afeta o de outro.
  */
 
 import {
@@ -16,20 +17,27 @@ import {
 } from "react";
 import { CODES } from "./codes";
 import { ACHIEVEMENTS, AchievementInput } from "./achievements";
+import { COURSE_LESSONS, LessonType } from "./curriculum";
 
-const STORAGE_KEY = "codelingo.progress.v1";
+const STORAGE_KEY = "codelingo.progress.v2";
+
+export interface LessonState {
+  completed: boolean;
+  bestScore: number; // 0..1
+}
 
 export interface CourseProgress {
-  completed: boolean;
-  lessonsDone: number;
-  bestScore: number; // 0..1
+  lessons: Partial<Record<LessonType, LessonState>>;
+  xp: number;
   mastered: boolean;
   attempts: number;
+  bestScore: number;
 }
 
 export interface LessonRecord {
   date: string;
   codeId: string;
+  lessonType: LessonType;
   correct: number;
   total: number;
   xp: number;
@@ -55,7 +63,7 @@ export interface Progress {
   minutesStudied: number;
   history: LessonRecord[];
   favorites: string[];
-  lastLesson: string | null;
+  lastCourse: string | null;
   theme: "dark" | "light";
 }
 
@@ -87,23 +95,20 @@ const initial: Progress = {
   minutesStudied: 0,
   history: [],
   favorites: [],
-  lastLesson: null,
+  lastCourse: null,
   theme: "dark",
 };
 
 // ---- Níveis e ligas --------------------------------------------------------
 
-/** XP total acumulado necessário para começar um nível. */
 export function levelStartXp(level: number): number {
-  return 50 * level * (level - 1); // L1=0, L2=100, L3=300, L4=600, L5=1000...
+  return 50 * level * (level - 1); // L1=0, L2=100, L3=300, L4=600...
 }
-
 export function levelFromXp(xp: number): number {
   let l = 1;
   while (levelStartXp(l + 1) <= xp) l++;
   return l;
 }
-
 export function levelProgress(xp: number): { level: number; into: number; span: number; pct: number } {
   const level = levelFromXp(xp);
   const start = levelStartXp(level);
@@ -113,37 +118,50 @@ export function levelProgress(xp: number): { level: number; into: number; span: 
   return { level, into, span, pct: Math.max(0, Math.min(1, into / span)) };
 }
 
+/** Ligas — tudo em tons de âmbar/dourado, sem outras cores. */
 export const LEAGUES = [
-  { id: "bronze", name: "Bronze", icon: "🥉", min: 0, color: "#CD7F32" },
-  { id: "prata", name: "Prata", icon: "🥈", min: 250, color: "#C0C0C0" },
+  { id: "bronze", name: "Bronze", icon: "🥉", min: 0, color: "#8a6a3a" },
+  { id: "prata", name: "Prata", icon: "🥈", min: 250, color: "#b89a5e" },
   { id: "ouro", name: "Ouro", icon: "🥇", min: 750, color: "#FFD54F" },
-  { id: "platina", name: "Platina", icon: "💠", min: 1500, color: "#7FE0D4" },
-  { id: "esmeralda", name: "Esmeralda", icon: "💚", min: 3000, color: "#50C878" },
-  { id: "diamante", name: "Diamante", icon: "💎", min: 5000, color: "#67C7EB" },
-  { id: "mestre", name: "Mestre", icon: "🔮", min: 8000, color: "#B57EDC" },
-  { id: "lendario", name: "Lendário", icon: "👑", min: 12000, color: "#FF7A00" },
+  { id: "platina", name: "Platina", icon: "🏅", min: 1500, color: "#FFC107" },
+  { id: "esmeralda", name: "Esmeralda", icon: "🎖️", min: 3000, color: "#FFB300" },
+  { id: "diamante", name: "Diamante", icon: "🏆", min: 5000, color: "#FFCA5A" },
+  { id: "mestre", name: "Mestre", icon: "👑", min: 8000, color: "#E69500" },
+  { id: "lendario", name: "Lendário", icon: "🔱", min: 12000, color: "#FFD54F" },
 ];
-
 export function leagueFromXp(xp: number) {
   let current = LEAGUES[0];
   for (const l of LEAGUES) if (xp >= l.min) current = l;
   return current;
 }
 
+// ---- Helpers de curso ------------------------------------------------------
+
+export function isCourseComplete(cp?: CourseProgress): boolean {
+  if (!cp) return false;
+  return COURSE_LESSONS.every((l) => cp.lessons[l.type]?.completed);
+}
+export function courseLessonsDone(cp?: CourseProgress): number {
+  if (!cp) return 0;
+  return COURSE_LESSONS.filter((l) => cp.lessons[l.type]?.completed).length;
+}
+
 // ---- Contexto --------------------------------------------------------------
 
 interface CompleteResult {
   xpGained: number;
-  newLevel: number | null; // se subiu de nível
+  newLevel: number | null;
   newAchievements: string[];
   mastered: boolean;
+  courseCompleted: boolean;
 }
 
 interface StoreValue {
   p: Progress;
   ready: boolean;
-  completeLesson: (codeId: string, correct: number, total: number, timeSec: number) => CompleteResult;
-  isUnlocked: (codeId: string) => boolean;
+  completeLesson: (codeId: string, lessonType: LessonType, correct: number, total: number, timeSec: number) => CompleteResult;
+  isLessonUnlocked: (codeId: string, type: LessonType) => boolean;
+  courseProgress: (codeId: string) => CourseProgress | undefined;
   toggleFavorite: (codeId: string) => void;
   setProfile: (name: string, avatar: string) => void;
   setDailyGoal: (goal: number) => void;
@@ -159,7 +177,6 @@ export function CodeLingoProvider({ children }: { children: React.ReactNode }) {
   const [p, setP] = useState<Progress>(initial);
   const [ready, setReady] = useState(false);
 
-  // Carregar
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -173,7 +190,6 @@ export function CodeLingoProvider({ children }: { children: React.ReactNode }) {
     setReady(true);
   }, []);
 
-  // Salvar
   useEffect(() => {
     if (!ready) return;
     try {
@@ -192,7 +208,7 @@ export function CodeLingoProvider({ children }: { children: React.ReactNode }) {
       level: levelFromXp(p.xp),
       streak: p.streak,
       lessonsCompleted: p.history.length,
-      coursesCompleted: Object.values(p.courses).filter((c) => c.completed).length,
+      coursesCompleted: Object.values(p.courses).filter((c) => isCourseComplete(c)).length,
       perfectLessons: p.perfectLessons,
       masteredCodes: mastered,
       totalCorrect: p.totalCorrect,
@@ -201,23 +217,25 @@ export function CodeLingoProvider({ children }: { children: React.ReactNode }) {
     };
   }, [p]);
 
-  const isUnlocked = useCallback(
-    (codeId: string) => {
-      const idx = CODES.findIndex((c) => c.id === codeId);
+  const courseProgress = useCallback((codeId: string) => p.courses[codeId], [p.courses]);
+
+  /** Lição desbloqueada se for a 1ª ou se a anterior do MESMO curso foi concluída. */
+  const isLessonUnlocked = useCallback(
+    (codeId: string, type: LessonType) => {
+      const idx = COURSE_LESSONS.findIndex((l) => l.type === type);
       if (idx <= 0) return true;
-      const prev = CODES[idx - 1];
-      return !!p.courses[prev.id]?.completed;
+      const prev = COURSE_LESSONS[idx - 1];
+      return !!p.courses[codeId]?.lessons[prev.type]?.completed;
     },
     [p.courses],
   );
 
   const completeLesson = useCallback(
-    (codeId: string, correct: number, total: number, timeSec: number): CompleteResult => {
-      const accuracy = total > 0 ? correct / total : 0;
-      const perfect = correct === total && total > 0;
-      const baseXp = correct * 10;
-      const bonus = perfect ? 20 : 0;
-      let result: CompleteResult = { xpGained: 0, newLevel: null, newAchievements: [], mastered: false };
+    (codeId: string, lessonType: LessonType, correct: number, total: number, timeSec: number): CompleteResult => {
+      const accuracy = total > 0 ? correct / total : 1;
+      const graded = lessonType !== "intro";
+      const perfect = graded && total > 0 && correct === total;
+      let result: CompleteResult = { xpGained: 0, newLevel: null, newAchievements: [], mastered: false, courseCompleted: false };
 
       setP((prev) => {
         const t = today();
@@ -238,38 +256,34 @@ export function CodeLingoProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        // meta diária
         const dailyXp = prev.dailyDate === t ? prev.dailyXp : 0;
         const streakBonus = streak >= 3 ? 5 : 0;
-        const xpGained = baseXp + bonus + streakBonus;
+        const xpGained = graded ? correct * 10 + (perfect ? 20 : 0) + streakBonus : 15;
 
-        const prevCourse = prev.courses[codeId] ?? {
-          completed: false,
-          lessonsDone: 0,
-          bestScore: 0,
-          mastered: false,
-          attempts: 0,
-        };
-        const mastered = prevCourse.mastered || accuracy >= 0.8;
+        const cp: CourseProgress = prev.courses[codeId] ?? { lessons: {}, xp: 0, mastered: false, attempts: 0, bestScore: 0 };
+        const prevLesson = cp.lessons[lessonType];
+        const lessons = { ...cp.lessons, [lessonType]: { completed: true, bestScore: Math.max(prevLesson?.bestScore ?? 0, accuracy) } };
+        const mastered = cp.mastered || (lessonType === "quiz" && accuracy >= 0.8);
         const course: CourseProgress = {
-          completed: true,
-          lessonsDone: prevCourse.lessonsDone + 1,
-          bestScore: Math.max(prevCourse.bestScore, accuracy),
+          lessons,
+          xp: cp.xp + xpGained,
           mastered,
-          attempts: prevCourse.attempts + 1,
+          attempts: cp.attempts + 1,
+          bestScore: Math.max(cp.bestScore, graded ? accuracy : cp.bestScore),
         };
+        const courseCompleted = COURSE_LESSONS.every((l) => lessons[l.type]?.completed);
 
         const oldLevel = levelFromXp(prev.xp);
         const newXp = prev.xp + xpGained;
         const newLevel = levelFromXp(newXp);
 
-        const rec: LessonRecord = { date: t, codeId, correct, total, xp: xpGained };
+        const rec: LessonRecord = { date: t, codeId, lessonType, correct, total, xp: xpGained };
         const studyDays = prev.studyDays.includes(t) ? prev.studyDays : [...prev.studyDays, t];
 
         const next: Progress = {
           ...prev,
           xp: newXp,
-          totalCorrect: prev.totalCorrect + correct,
+          totalCorrect: prev.totalCorrect + (graded ? correct : 0),
           streak,
           freezes,
           lastActiveDate: t,
@@ -278,21 +292,24 @@ export function CodeLingoProvider({ children }: { children: React.ReactNode }) {
           courses: { ...prev.courses, [codeId]: course },
           perfectLessons: prev.perfectLessons + (perfect ? 1 : 0),
           fastestLessonSec:
-            prev.fastestLessonSec === null ? timeSec : Math.min(prev.fastestLessonSec, timeSec),
-          bestAccuracy: Math.max(prev.bestAccuracy, accuracy),
+            graded && timeSec > 0
+              ? prev.fastestLessonSec === null
+                ? timeSec
+                : Math.min(prev.fastestLessonSec, timeSec)
+              : prev.fastestLessonSec,
+          bestAccuracy: graded ? Math.max(prev.bestAccuracy, accuracy) : prev.bestAccuracy,
           studyDays,
           minutesStudied: prev.minutesStudied + Math.max(1, Math.round(timeSec / 60)),
-          history: [...prev.history, rec].slice(-200),
-          lastLesson: codeId,
+          history: [...prev.history, rec].slice(-300),
+          lastCourse: codeId,
         };
 
-        // conquistas
         const ai: AchievementInput = {
           xp: newXp,
           level: newLevel,
           streak,
           lessonsCompleted: next.history.length,
-          coursesCompleted: Object.values(next.courses).filter((c) => c.completed).length,
+          coursesCompleted: Object.values(next.courses).filter((c) => isCourseComplete(c)).length,
           perfectLessons: next.perfectLessons,
           masteredCodes: Object.entries(next.courses).filter(([, c]) => c.mastered).map(([id]) => id),
           totalCorrect: next.totalCorrect,
@@ -306,7 +323,8 @@ export function CodeLingoProvider({ children }: { children: React.ReactNode }) {
           xpGained,
           newLevel: newLevel > oldLevel ? newLevel : null,
           newAchievements: unlocked,
-          mastered,
+          mastered: mastered && !cp.mastered,
+          courseCompleted: courseCompleted && !isCourseComplete(cp),
         };
         return next;
       });
@@ -319,37 +337,23 @@ export function CodeLingoProvider({ children }: { children: React.ReactNode }) {
   const toggleFavorite = useCallback((codeId: string) => {
     setP((prev) => ({
       ...prev,
-      favorites: prev.favorites.includes(codeId)
-        ? prev.favorites.filter((f) => f !== codeId)
-        : [...prev.favorites, codeId],
+      favorites: prev.favorites.includes(codeId) ? prev.favorites.filter((f) => f !== codeId) : [...prev.favorites, codeId],
     }));
   }, []);
-
   const setProfile = useCallback((name: string, avatar: string) => {
     setP((prev) => ({ ...prev, name: name || prev.name, avatar: avatar || prev.avatar }));
   }, []);
-
-  const setDailyGoal = useCallback((goal: number) => {
-    setP((prev) => ({ ...prev, dailyGoal: goal }));
-  }, []);
-
-  const setTheme = useCallback((t: "dark" | "light") => {
-    setP((prev) => ({ ...prev, theme: t }));
-  }, []);
-
-  const useFreeze = useCallback(() => {
-    setP((prev) => (prev.freezes > 0 ? { ...prev, freezes: prev.freezes - 1 } : prev));
-  }, []);
-
-  const reset = useCallback(() => {
-    setP({ ...initial, dailyDate: today() });
-  }, []);
+  const setDailyGoal = useCallback((goal: number) => setP((prev) => ({ ...prev, dailyGoal: goal })), []);
+  const setTheme = useCallback((t: "dark" | "light") => setP((prev) => ({ ...prev, theme: t })), []);
+  const useFreeze = useCallback(() => setP((prev) => (prev.freezes > 0 ? { ...prev, freezes: prev.freezes - 1 } : prev)), []);
+  const reset = useCallback(() => setP({ ...initial, dailyDate: today() }), []);
 
   const value: StoreValue = {
     p,
     ready,
     completeLesson,
-    isUnlocked,
+    isLessonUnlocked,
+    courseProgress,
     toggleFavorite,
     setProfile,
     setDailyGoal,

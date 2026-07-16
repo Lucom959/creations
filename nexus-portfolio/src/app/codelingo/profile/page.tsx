@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { CODES } from "@/codelingo/codes";
 import { ACHIEVEMENTS } from "@/codelingo/achievements";
-import { leagueFromXp, levelFromXp, useStore } from "@/codelingo/store";
+import { isCourseComplete, leagueFromXp, levelFromXp, useStore } from "@/codelingo/store";
 
 const AVATARS = ["🕵️", "🧑‍💻", "👩‍🚀", "🦊", "🐙", "🤖", "🦉", "🐝", "👾", "🧙", "🐧", "🦾"];
 
@@ -24,7 +24,7 @@ export default function ProfilePage() {
   const level = levelFromXp(p.xp);
   const league = leagueFromXp(p.xp);
   const unlocked = useMemo(() => ACHIEVEMENTS.filter((a) => a.check(achievementInput)), [achievementInput]);
-  const completedCourses = Object.values(p.courses).filter((c) => c.completed).length;
+  const completedCourses = Object.values(p.courses).filter((c) => isCourseComplete(c)).length;
   const masteredCourses = Object.values(p.courses).filter((c) => c.mastered).length;
   const accuracy = Math.round(p.bestAccuracy * 100);
 
@@ -211,7 +211,7 @@ export default function ProfilePage() {
         <button
           type="button"
           className="cl-btn cl-btn-ghost"
-          style={{ padding: "10px 16px", borderColor: "#e05555", color: "#e05555" }}
+          style={{ padding: "10px 16px", borderColor: "var(--cl-err)", color: "var(--cl-err)" }}
           onClick={() => {
             if (confirm("Apagar todo o progresso? Isso não pode ser desfeito.")) reset();
           }}

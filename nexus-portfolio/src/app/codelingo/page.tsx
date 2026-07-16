@@ -2,24 +2,34 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { CODES } from "@/codelingo/codes";
-import { leagueFromXp, levelProgress, useStore, LEAGUES } from "@/codelingo/store";
+import { CODES, getCode } from "@/codelingo/codes";
+import { COURSE_LESSONS } from "@/codelingo/curriculum";
+import {
+  courseLessonsDone,
+  isCourseComplete,
+  leagueFromXp,
+  levelProgress,
+  LEAGUES,
+  useStore,
+} from "@/codelingo/store";
 import { ACHIEVEMENTS } from "@/codelingo/achievements";
 import ProgressRing from "@/components/codelingo/ProgressRing";
 
 export default function Dashboard() {
-  const { p, ready, isUnlocked, achievementInput } = useStore();
+  const { p, ready, courseProgress, isLessonUnlocked, achievementInput } = useStore();
 
   const lp = levelProgress(p.xp);
   const league = leagueFromXp(p.xp);
   const dailyDone = p.dailyDate === new Date().toISOString().slice(0, 10) ? p.dailyXp : 0;
   const dailyPct = Math.min(1, dailyDone / p.dailyGoal);
 
-  const unlockedAch = useMemo(
-    () => ACHIEVEMENTS.filter((a) => a.check(achievementInput)),
-    [achievementInput],
-  );
-  const completedCount = Object.values(p.courses).filter((c) => c.completed).length;
+  const unlockedAch = useMemo(() => ACHIEVEMENTS.filter((a) => a.check(achievementInput)), [achievementInput]);
+  const completedCourses = CODES.filter((c) => isCourseComplete(courseProgress(c.id))).length;
+
+  const lastCode = p.lastCourse ? getCode(p.lastCourse) : undefined;
+  const lastCp = lastCode ? courseProgress(lastCode.id) : undefined;
+  const lastDone = courseLessonsDone(lastCp);
+  const nextLesson = lastCode ? COURSE_LESSONS.find((l) => !lastCp?.lessons[l.type]?.completed) : undefined;
 
   const greeting = (() => {
     const h = new Date().getHours();
@@ -31,10 +41,7 @@ export default function Dashboard() {
   return (
     <div className="cl-fade-up">
       {/* Resumo */}
-      <section
-        className="cl-card"
-        style={{ padding: 20, display: "grid", gap: 20, gridTemplateColumns: "1fr", marginBottom: 24 }}
-      >
+      <section className="cl-card" style={{ padding: 20, display: "grid", gap: 20, marginBottom: 24 }}>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
           <div>
             <div className="cl-muted" style={{ fontSize: "0.85rem" }}>
@@ -44,95 +51,91 @@ export default function Dashboard() {
               Nível {lp.level} · <span className="cl-amber">{league.icon} {league.name}</span>
             </h1>
             <div style={{ marginTop: 12, maxWidth: 360 }}>
-              <div className="cl-progress">
-                <span style={{ width: `${lp.pct * 100}%` }} />
-              </div>
+              <div className="cl-progress"><span style={{ width: `${lp.pct * 100}%` }} /></div>
               <div className="cl-muted" style={{ fontSize: "0.75rem", marginTop: 6 }}>
                 {lp.into}/{lp.span} XP para o nível {lp.level + 1}
               </div>
             </div>
           </div>
 
-          {/* Meta diária */}
           <ProgressRing value={dailyPct} size={116}>
             <div>
-              <div className="cl-display cl-amber" style={{ fontSize: "1.5rem", fontWeight: 800 }}>
-                {dailyDone}
-              </div>
+              <div className="cl-display cl-amber" style={{ fontSize: "1.5rem", fontWeight: 800 }}>{dailyDone}</div>
               <div className="cl-muted" style={{ fontSize: "0.68rem" }}>/ {p.dailyGoal} XP hoje</div>
             </div>
           </ProgressRing>
         </div>
 
-        {/* Métricas rápidas */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
           <Metric icon="🔥" label="Sequência" value={`${p.streak}d`} />
           <Metric icon="⚡" label="XP total" value={`${p.xp}`} />
-          <Metric icon="✅" label="Cursos" value={`${completedCount}/${CODES.length}`} />
+          <Metric icon="✅" label="Cursos" value={`${completedCourses}/${CODES.length}`} />
           <Metric icon="🏅" label="Conquistas" value={`${unlockedAch.length}/${ACHIEVEMENTS.length}`} />
         </div>
 
-        {/* Continuar */}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <Link
-            href={`/codelingo/lesson/${p.lastLesson ?? CODES[0].id}`}
-            className="cl-btn cl-btn-amber"
-            style={{ padding: "12px 22px", fontSize: "0.95rem" }}
-          >
-            {p.lastLesson ? "▶ Continuar estudando" : "🚀 Começar agora"}
+          <Link href="/codelingo/courses" className="cl-btn cl-btn-amber" style={{ padding: "12px 22px", fontSize: "0.95rem" }}>
+            🗂️ Escolha um Código
           </Link>
+          {lastCode && nextLesson && (
+            <Link href={`/codelingo/lesson/${lastCode.id}?type=${nextLesson.type}`} className="cl-btn cl-btn-ghost" style={{ padding: "12px 22px", fontSize: "0.95rem" }}>
+              ▶ Continuar {lastCode.icon} {lastCode.name}
+            </Link>
+          )}
           {p.freezes > 0 && (
-            <span className="cl-chip" title="Congelamentos de sequência disponíveis">
+            <span className="cl-chip" title="Congelamentos de sequência disponíveis" style={{ alignSelf: "center" }}>
               🧊 {p.freezes} freeze{p.freezes > 1 ? "s" : ""}
             </span>
           )}
         </div>
       </section>
 
-      {/* Árvore de aprendizado */}
-      <section>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 16 }}>
-          <h2 className="cl-display" style={{ fontSize: "1.4rem", fontWeight: 700 }}>
-            Árvore de aprendizado
-          </h2>
-          <span className="cl-muted" style={{ fontSize: "0.8rem" }}>{CODES.length} cursos</span>
-        </div>
+      {/* Continue de onde parou */}
+      {lastCode && (
+        <section className="cl-card" style={{ padding: 18, marginBottom: 24, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <span style={{ fontSize: "2.2rem" }}>{lastCode.icon}</span>
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <div className="cl-display" style={{ fontWeight: 700 }}>{lastCode.name}</div>
+            <div className="cl-muted" style={{ fontSize: "0.78rem" }}>
+              {lastDone}/{COURSE_LESSONS.length} lições · último curso estudado
+            </div>
+            <div className="cl-progress" style={{ marginTop: 8, height: 6, maxWidth: 240 }}>
+              <span style={{ width: `${(lastDone / COURSE_LESSONS.length) * 100}%` }} />
+            </div>
+          </div>
+          <Link href={`/codelingo/course/${lastCode.id}`} className="cl-btn cl-btn-ghost" style={{ padding: "10px 18px", fontSize: "0.85rem" }}>
+            Ver curso →
+          </Link>
+        </section>
+      )}
 
-        <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-          {CODES.map((code, i) => {
-            const unlocked = ready ? isUnlocked(code.id) : i === 0;
-            const done = !!p.courses[code.id]?.completed;
-            const mastered = !!p.courses[code.id]?.mastered;
-            // serpentina: deslocamento horizontal
-            const offset = Math.sin(i * 0.9) * 90;
-            const state = done ? "done" : unlocked ? "active" : "locked";
+      {/* Cursos em destaque */}
+      <section style={{ marginBottom: 36 }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 16 }}>
+          <h2 className="cl-display" style={{ fontSize: "1.4rem", fontWeight: 700 }}>Comece por aqui</h2>
+          <Link href="/codelingo/courses" className="cl-amber" style={{ fontSize: "0.82rem", textDecoration: "none" }}>Ver todos →</Link>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
+          {CODES.slice(0, 4).map((code) => {
+            const cp = ready ? courseProgress(code.id) : undefined;
+            const done = courseLessonsDone(cp);
+            const unlocked = ready ? isLessonUnlocked(code.id, "intro") : true;
             return (
-              <div key={code.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
-                {i > 0 && (
-                  <div
-                    style={{
-                      width: 4,
-                      height: 26,
-                      borderRadius: 2,
-                      background: done || unlocked ? "var(--cl-amber-800)" : "var(--cl-border)",
-                      opacity: 0.6,
-                    }}
-                  />
-                )}
-                <div style={{ transform: `translateX(${offset}px)`, display: "flex", alignItems: "center", gap: 14 }}>
-                  <NodeCard code={code} state={state} mastered={mastered} align={offset >= 0 ? "left" : "right"} />
+              <Link key={code.id} href={`/codelingo/course/${code.id}`} className="cl-course-card" style={{ textDecoration: "none", color: "inherit" }}>
+                <span style={{ fontSize: "1.8rem" }}>{unlocked ? code.icon : "🔒"}</span>
+                <div className="cl-display" style={{ fontWeight: 700, fontSize: "0.95rem" }}>{code.name}</div>
+                <div className="cl-progress" style={{ height: 6 }}>
+                  <span style={{ width: `${(done / COURSE_LESSONS.length) * 100}%` }} />
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
       </section>
 
       {/* Ligas */}
-      <section style={{ marginTop: 36 }}>
-        <h2 className="cl-display" style={{ fontSize: "1.4rem", fontWeight: 700, marginBottom: 16 }}>
-          Sistema de ligas
-        </h2>
+      <section>
+        <h2 className="cl-display" style={{ fontSize: "1.4rem", fontWeight: 700, marginBottom: 16 }}>Sistema de ligas</h2>
         <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8 }}>
           {LEAGUES.map((l) => {
             const active = league.id === l.id;
@@ -169,53 +172,5 @@ function Metric({ icon, label, value }: { icon: string; label: string; value: st
       <div className="cl-display cl-amber" style={{ fontWeight: 800, fontSize: "1.1rem" }}>{value}</div>
       <div className="cl-muted" style={{ fontSize: "0.68rem" }}>{label}</div>
     </div>
-  );
-}
-
-function NodeCard({
-  code,
-  state,
-  mastered,
-  align,
-}: {
-  code: (typeof CODES)[number];
-  state: "done" | "active" | "locked";
-  mastered: boolean;
-  align: "left" | "right";
-}) {
-  const node = (
-    <div
-      className={`cl-node ${state === "done" ? "cl-node-done" : state === "active" ? "cl-node-active" : "cl-node-locked"}`}
-    >
-      {state === "locked" ? "🔒" : code.icon}
-      {state === "done" && <span className="cl-tick">✓</span>}
-    </div>
-  );
-  const label = (
-    <div style={{ textAlign: align === "left" ? "left" : "right" }}>
-      <div className="cl-display" style={{ fontWeight: 700, fontSize: "0.95rem" }}>{code.name}</div>
-      <div className="cl-muted" style={{ fontSize: "0.72rem" }}>
-        {"⭐".repeat(code.difficulty)} · {code.category}
-        {mastered && <span className="cl-amber"> · dominado</span>}
-      </div>
-    </div>
-  );
-
-  if (state === "locked") {
-    return (
-      <div style={{ display: "flex", alignItems: "center", gap: 14, cursor: "not-allowed" }} title="Conclua o curso anterior para desbloquear">
-        {align === "right" && label}
-        {node}
-        {align === "left" && label}
-      </div>
-    );
-  }
-
-  return (
-    <Link href={`/codelingo/lesson/${code.id}`} style={{ display: "flex", alignItems: "center", gap: 14, textDecoration: "none", color: "inherit" }}>
-      {align === "right" && label}
-      {node}
-      {align === "left" && label}
-    </Link>
   );
 }
