@@ -14,7 +14,7 @@ export default function ProgressRing({
   size = 120,
   stroke = 10,
   children,
-  color = "#FFD54F",
+  color = "var(--cl-amber)",
 }: Props) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;

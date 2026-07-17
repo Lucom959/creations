@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { CODES, CodeModule } from "@/codelingo/codes";
-import { COURSE_LESSONS } from "@/codelingo/curriculum";
+import { TOTAL_STEPS, TOTAL_UNITS } from "@/codelingo/curriculum";
 import { CourseProgress, courseLessonsDone, isCourseComplete, useStore } from "@/codelingo/store";
 
 const CATEGORIES = ["Todas", "Fundamentos", "Numéricos", "Cifras", "Táteis & Visuais", "Comunicação"] as const;
@@ -31,8 +31,8 @@ export default function CoursesPage() {
         <h1 className="cl-display" style={{ fontSize: "2rem", fontWeight: 800, marginTop: 4 }}>
           Escolha um Código
         </h1>
-        <p className="cl-muted" style={{ marginTop: 6, maxWidth: 520 }}>
-          Cada código é um curso independente, com sua própria introdução, exercícios, revisão e quiz final. Escolha por onde começar — o progresso de um curso nunca afeta o dos outros.
+        <p className="cl-muted" style={{ marginTop: 6, maxWidth: 560 }}>
+          Cada código é um curso completo e independente, com {TOTAL_UNITS} unidades e {TOTAL_STEPS} lições — do zero absoluto até a prova final. Escolha por onde começar: o progresso de um curso nunca afeta o dos outros.
         </p>
       </div>
 
@@ -56,7 +56,7 @@ export default function CoursesPage() {
                 cursor: "pointer",
                 borderColor: category === cat ? "var(--cl-amber)" : "var(--cl-border)",
                 color: category === cat ? "var(--cl-amber)" : "var(--cl-text)",
-                background: category === cat ? "rgba(255,213,79,0.1)" : "var(--cl-glass)",
+                background: category === cat ? "rgba(255,193,7,0.12)" : "var(--cl-glass)",
               }}
             >
               {cat}
@@ -86,7 +86,7 @@ export default function CoursesPage() {
 
 function CourseCard({ code, cp }: { code: CodeModule; cp: CourseProgress | undefined }) {
   const done = courseLessonsDone(cp);
-  const total = COURSE_LESSONS.length;
+  const total = TOTAL_STEPS;
   const pct = total > 0 ? done / total : 0;
   const started = done > 0;
   const complete = isCourseComplete(cp);

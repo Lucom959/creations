@@ -5,24 +5,25 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useRef, useState, useEffect } from "react";
 import { getCode } from "@/codelingo/codes";
 import { Exercise } from "@/codelingo/exercises";
-import { buildLesson, checkExercise, COURSE_LESSONS, LESSON_META, LessonType, TeachCard } from "@/codelingo/curriculum";
+import { buildLesson, checkExercise, COURSE_STEPS, TOTAL_UNITS, TOTAL_STEPS, TeachCard } from "@/codelingo/curriculum";
 import { ACHIEVEMENTS } from "@/codelingo/achievements";
 import { useStore } from "@/codelingo/store";
 import { sfx, playMorse, resumeAudio } from "@/codelingo/sound";
 import Confetti from "./Confetti";
+import { SemaphoreDiagram, PigpenDiagram } from "./CodeDiagrams";
 
 export default function LessonPlayer({ id }: { id: string }) {
   const router = useRouter();
   const search = useSearchParams();
-  const type = (search.get("type") as LessonType) || "intro";
+  const stepId = search.get("type") || COURSE_STEPS[0].id;
   const { completeLesson } = useStore();
   const code = getCode(id);
 
   const [seed] = useState(() => Math.floor(Math.random() * 1e6) + 1);
-  const lesson = useMemo(() => buildLesson(id, type, seed), [id, type, seed]);
-  const meta = LESSON_META[type];
+  const lesson = useMemo(() => buildLesson(id, stepId, seed), [id, stepId, seed]);
+  const step = lesson?.step;
+  const stepIndex = COURSE_STEPS.findIndex((s) => s.id === stepId);
 
-  // Estado de aula (intro) e de exercícios
   const [cardIdx, setCardIdx] = useState(0);
   const [index, setIndex] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
@@ -40,10 +41,10 @@ export default function LessonPlayer({ id }: { id: string }) {
     setFeedback(null);
   }, [index]);
 
-  if (!code || !lesson) {
+  if (!code || !lesson || !step) {
     return (
       <div className="cl-card" style={{ padding: 24, textAlign: "center" }}>
-        <p>Curso não encontrado.</p>
+        <p>Lição não encontrada.</p>
         <Link href="/codelingo/courses" className="cl-btn cl-btn-amber" style={{ marginTop: 12, padding: "10px 18px", display: "inline-flex" }}>
           Escolher um código
         </Link>
@@ -53,16 +54,16 @@ export default function LessonPlayer({ id }: { id: string }) {
 
   const teach = lesson.teach ?? [];
   const exercises = lesson.exercises ?? [];
-  const isIntro = type === "intro";
-  const stepCount = isIntro ? teach.length : exercises.length;
-  const stepNow = isIntro ? cardIdx : index;
+  const isLearn = step.kind === "learn";
+  const stepCount = isLearn ? teach.length : exercises.length;
+  const stepNow = isLearn ? cardIdx : index;
   const progress = stepCount > 0 ? stepNow / stepCount : 0;
 
   const finish = (finalCorrect: number, total: number) => {
     if (finishedRef.current) return;
     finishedRef.current = true;
     const timeSec = Math.round((Date.now() - startRef.current) / 1000);
-    const res = completeLesson(id, type, finalCorrect, total, timeSec);
+    const res = completeLesson(id, step.id, finalCorrect, total, timeSec);
     setResult(res);
     setDone(true);
     resumeAudio();
@@ -71,7 +72,6 @@ export default function LessonPlayer({ id }: { id: string }) {
     if (res.newAchievements.length) setTimeout(() => sfx.achievement(), 1000);
   };
 
-  // ---- Aula (intro) ----
   const nextCard = () => {
     resumeAudio();
     sfx.click();
@@ -79,7 +79,6 @@ export default function LessonPlayer({ id }: { id: string }) {
     else setCardIdx((c) => c + 1);
   };
 
-  // ---- Exercícios ----
   const ex: Exercise | undefined = exercises[index];
   const submit = () => {
     resumeAudio();
@@ -102,24 +101,23 @@ export default function LessonPlayer({ id }: { id: string }) {
 
   // ---- Tela de conclusão ----
   if (done && result) {
-    const total = isIntro ? 0 : exercises.length;
+    const total = isLearn ? 0 : exercises.length;
     const accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 100;
-    const curIdx = COURSE_LESSONS.findIndex((l) => l.type === type);
-    const nextLesson = COURSE_LESSONS[curIdx + 1];
+    const nextStep = COURSE_STEPS[stepIndex + 1];
     return (
       <>
         <Confetti show />
         <div className="cl-card cl-pop" style={{ padding: 28, textAlign: "center", maxWidth: 460, margin: "20px auto" }}>
-          <div style={{ fontSize: "3.4rem" }}>{isIntro ? "📖" : accuracy === 100 ? "🏆" : accuracy >= 60 ? "🎉" : "💪"}</div>
+          <div style={{ fontSize: "3.4rem" }}>{isLearn ? "📖" : accuracy === 100 ? "🏆" : accuracy >= 60 ? "🎉" : "💪"}</div>
           <h1 className="cl-display" style={{ fontSize: "1.8rem", fontWeight: 800, marginTop: 8 }}>
-            {isIntro ? "Aula concluída!" : "Lição concluída!"}
+            {isLearn ? "Aula concluída!" : "Lição concluída!"}
           </h1>
-          <p className="cl-muted" style={{ marginTop: 4 }}>{code.icon} {code.name} · {meta.title}</p>
+          <p className="cl-muted" style={{ marginTop: 4 }}>{code.icon} {code.name} · {step.unitTitle} · {step.title}</p>
 
-          <div style={{ display: "grid", gridTemplateColumns: isIntro ? "1fr" : "repeat(3,1fr)", gap: 10, marginTop: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isLearn ? "1fr" : "repeat(3,1fr)", gap: 10, marginTop: 20 }}>
             <Stat label="XP ganho" value={`+${result.xpGained}`} />
-            {!isIntro && <Stat label="Acertos" value={`${correctCount}/${total}`} />}
-            {!isIntro && <Stat label="Precisão" value={`${accuracy}%`} />}
+            {!isLearn && <Stat label="Acertos" value={`${correctCount}/${total}`} />}
+            {!isLearn && <Stat label="Precisão" value={`${accuracy}%`} />}
           </div>
 
           {result.newLevel && (
@@ -144,17 +142,17 @@ export default function LessonPlayer({ id }: { id: string }) {
           )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 24 }}>
-            {nextLesson ? (
+            {nextStep ? (
               <button
                 type="button"
                 className="cl-btn cl-btn-amber"
                 style={{ padding: "12px" }}
                 onClick={() => {
                   finishedRef.current = false;
-                  router.push(`/codelingo/lesson/${id}?type=${nextLesson.type}`);
+                  router.push(`/codelingo/lesson/${id}?type=${nextStep.id}`);
                 }}
               >
-                Próxima: {nextLesson.icon} {nextLesson.title} →
+                {nextStep.unitIndex !== step.unitIndex ? `Próxima unidade: ${nextStep.unitIcon} ${nextStep.unitTitle} →` : `Próxima: ${nextStep.icon} ${nextStep.title} →`}
               </button>
             ) : (
               <Link href={`/codelingo/course/${id}`} className="cl-btn cl-btn-amber" style={{ padding: "12px" }}>
@@ -187,26 +185,32 @@ export default function LessonPlayer({ id }: { id: string }) {
   }
 
   const header = (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-      <Link href={`/codelingo/course/${id}`} aria-label="Sair" className="cl-btn cl-btn-ghost" style={{ width: 40, height: 40, padding: 0, flexShrink: 0 }}>✕</Link>
-      <div className="cl-progress" style={{ flex: 1 }}>
-        <span style={{ width: `${progress * 100}%` }} />
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+        <Link href={`/codelingo/course/${id}`} aria-label="Sair" className="cl-btn cl-btn-ghost" style={{ width: 40, height: 40, padding: 0, flexShrink: 0 }}>✕</Link>
+        <div className="cl-progress" style={{ flex: 1 }}>
+          <span style={{ width: `${progress * 100}%` }} />
+        </div>
+        <span className="cl-chip">{code.icon} {stepNow + 1}/{stepCount}</span>
       </div>
-      <span className="cl-chip">{code.icon} {stepNow + 1}/{stepCount}</span>
+      {/* Item 82: o usuário sempre sabe onde está no curso */}
+      <div className="cl-muted" style={{ fontSize: "0.72rem", textAlign: "center" }}>
+        Unidade {step.unitIndex + 1} de {TOTAL_UNITS} · {step.unitTitle} — Passo {stepIndex + 1} de {TOTAL_STEPS} do curso
+      </div>
     </div>
   );
 
-  // ---- Render: AULA (intro) ----
-  if (isIntro) {
+  // ---- Render: AULA (learn) ----
+  if (isLearn) {
     const card = teach[cardIdx];
     return (
-      <div className="cl-fade-up" style={{ maxWidth: 620, margin: "0 auto" }}>
+      <div className="cl-fade-up" style={{ maxWidth: 640, margin: "0 auto" }}>
         {header}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
           <span style={{ fontSize: "1.6rem" }}>🤖</span>
           <div>
             <div className="cl-display" style={{ fontWeight: 700 }}>CipherBot explica</div>
-            <div className="cl-muted" style={{ fontSize: "0.72rem" }}>{code.name} · aula do zero</div>
+            <div className="cl-muted" style={{ fontSize: "0.72rem" }}>{code.name} · {step.unitTitle}</div>
           </div>
         </div>
         <TeachCardView key={card.title} card={card} />
@@ -215,7 +219,7 @@ export default function LessonPlayer({ id }: { id: string }) {
             <button type="button" className="cl-btn cl-btn-ghost" style={{ padding: "14px 18px" }} onClick={() => setCardIdx((c) => c - 1)}>←</button>
           )}
           <button type="button" className="cl-btn cl-btn-amber" style={{ flex: 1, padding: "14px" }} onClick={nextCard}>
-            {cardIdx + 1 >= teach.length ? "Começar a praticar →" : "Continuar →"}
+            {cardIdx + 1 >= teach.length ? "Continuar →" : "Continuar →"}
           </button>
         </div>
       </div>
@@ -224,12 +228,12 @@ export default function LessonPlayer({ id }: { id: string }) {
 
   // ---- Render: EXERCÍCIOS ----
   return (
-    <div className="cl-fade-up" style={{ maxWidth: 620, margin: "0 auto" }}>
+    <div className="cl-fade-up" style={{ maxWidth: 640, margin: "0 auto" }}>
       {header}
       {ex && (
         <div key={ex.id} className="cl-fade-up">
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <span className="cl-chip">{meta.icon} {meta.title}</span>
+            <span className="cl-chip">{step.icon} {step.title}</span>
             {ex.guided && <span className="cl-chip cl-amber">guiado</span>}
           </div>
           <h2 className="cl-display" style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: 6 }}>{ex.prompt}</h2>
@@ -255,12 +259,13 @@ export default function LessonPlayer({ id }: { id: string }) {
                 const isCorrect = opt === ex.answer;
                 let border = "var(--cl-border)";
                 let bg = "var(--cl-surface)";
-                if (reveal && isCorrect) { border = "var(--cl-amber)"; bg = "rgba(255,213,79,0.16)"; }
+                if (reveal && isCorrect) { border = "var(--cl-amber)"; bg = "rgba(255,193,7,0.14)"; }
                 else if (reveal && isSel && !isCorrect) { border = "var(--cl-err)"; bg = "rgba(217,101,78,0.12)"; }
-                else if (isSel) { border = "var(--cl-amber)"; bg = "rgba(255,213,79,0.1)"; }
+                else if (isSel) { border = "var(--cl-amber)"; bg = "rgba(255,193,7,0.08)"; }
                 return (
                   <button key={opt} type="button" disabled={reveal} onClick={() => { setSelected(opt); sfx.click(); resumeAudio(); }}
-                    style={{ textAlign: "left", padding: "14px 16px", borderRadius: 14, border: `2px solid ${border}`, background: bg, color: "var(--cl-text)", cursor: reveal ? "default" : "pointer", transition: "all 0.2s ease", fontWeight: 600, wordBreak: "break-word", fontFamily: "var(--font-grotesk)" }}>
+                    className="cl-option"
+                    style={{ textAlign: "left", padding: "14px 16px", borderRadius: 14, border: `2px solid ${border}`, background: bg, color: "var(--cl-text)", cursor: reveal ? "default" : "pointer", fontWeight: 600, wordBreak: "break-word", fontFamily: "var(--font-grotesk)" }}>
                     {opt}
                   </button>
                 );
@@ -276,7 +281,7 @@ export default function LessonPlayer({ id }: { id: string }) {
           )}
 
           {feedback && (
-            <div className="cl-fade-up" style={{ marginTop: 16, padding: "12px 14px", borderRadius: 12, background: feedback === "correct" ? "rgba(255,213,79,0.12)" : "rgba(217,101,78,0.12)", border: `1px solid ${feedback === "correct" ? "var(--cl-amber)" : "var(--cl-err)"}` }}>
+            <div className="cl-fade-up" style={{ marginTop: 16, padding: "12px 14px", borderRadius: 12, background: feedback === "correct" ? "rgba(255,193,7,0.1)" : "rgba(217,101,78,0.12)", border: `1px solid ${feedback === "correct" ? "var(--cl-amber)" : "var(--cl-err)"}` }}>
               <strong className={feedback === "correct" ? "cl-amber" : ""}>{feedback === "correct" ? "✅ Correto!" : "❌ Quase!"}</strong>
               {feedback === "wrong" && <div style={{ fontSize: "0.85rem", marginTop: 4 }}>A resposta certa é <strong className="cl-amber">{ex.answer}</strong>.</div>}
               {ex.explain && <div className="cl-muted" style={{ fontSize: "0.82rem", marginTop: 4, wordBreak: "break-word" }}>{ex.explain}</div>}
@@ -310,7 +315,18 @@ function TeachCardView({ card }: { card: TeachCard }) {
       </div>
       <p style={{ lineHeight: 1.65, whiteSpace: "pre-wrap" }}>{card.body}</p>
 
+      {card.list && (
+        <ul style={{ margin: "12px 0 0", paddingLeft: 20, display: "grid", gap: 8 }}>
+          {card.list.map((item, i) => (
+            <li key={i} className="cl-muted" style={{ fontSize: "0.9rem", lineHeight: 1.5 }}>{item}</li>
+          ))}
+        </ul>
+      )}
+
       {card.example && <ExampleView plain={card.example.plain} encoded={card.example.encoded} morse={card.morse} />}
+
+      {card.visual?.kind === "semaphore" && <SemaphoreDiagram letter={card.visual.letter} />}
+      {card.visual?.kind === "pigpen" && <PigpenDiagram letter={card.visual.letter} />}
 
       {card.hint && !card.example && (
         <pre style={{ marginTop: 14, padding: 12, background: "var(--cl-surface)", borderRadius: 10, color: "var(--cl-amber)", fontFamily: "var(--font-grotesk)", whiteSpace: "pre-wrap", fontSize: "0.85rem" }}>{card.hint}</pre>

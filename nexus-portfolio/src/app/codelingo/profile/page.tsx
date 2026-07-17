@@ -80,7 +80,7 @@ export default function ProfilePage() {
                 height: 44,
                 borderRadius: 12,
                 border: `2px solid ${p.avatar === a ? "var(--cl-amber)" : "var(--cl-border)"}`,
-                background: p.avatar === a ? "rgba(255,213,79,0.1)" : "var(--cl-surface)",
+                background: p.avatar === a ? "rgba(255,193,7,0.12)" : "var(--cl-surface)",
                 cursor: "pointer",
               }}
             >
@@ -114,7 +114,7 @@ export default function ProfilePage() {
                 gap: 12,
                 padding: "10px 12px",
                 borderRadius: 12,
-                background: r.me ? "rgba(255,213,79,0.1)" : "var(--cl-surface)",
+                background: r.me ? "rgba(255,193,7,0.12)" : "var(--cl-surface)",
                 border: `1px solid ${r.me ? "var(--cl-amber)" : "var(--cl-border)"}`,
               }}
             >
@@ -199,7 +199,7 @@ export default function ProfilePage() {
                 style={{
                   padding: "8px 16px",
                   border: `2px solid ${p.dailyGoal === g ? "var(--cl-amber)" : "var(--cl-border)"}`,
-                  background: p.dailyGoal === g ? "rgba(255,213,79,0.1)" : "transparent",
+                  background: p.dailyGoal === g ? "rgba(255,193,7,0.12)" : "transparent",
                   color: "var(--cl-text)",
                 }}
               >

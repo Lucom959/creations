@@ -15,6 +15,8 @@ export interface CourseContent {
   decodeGuide: string;
   applications: string;
   curiosities: string[];
+  /** Erros comuns que iniciantes cometem — mostrado na unidade de aplicações. */
+  commonMistakes: string[];
   summary: string;
 }
 
@@ -186,6 +188,11 @@ export const CODES: CodeModule[] = [
       decodeGuide: "Divida por espaços, traduza cada grupo de volta para a letra correspondente.",
       applications:
         "Telegrafia, aviação, náutica, situações de emergência (SOS = ···−−−···) e radioamadorismo.",
+      commonMistakes: [
+        "Esquecer o espaço entre letras — sem ele, '· ·' (dois E) vira '··' (I).",
+        "Confundir S (···) com H (····) — conte os pontos com atenção.",
+        "Misturar ponto e traço com tamanhos parecidos — um traço dura 3x mais que um ponto.",
+      ],
       curiosities: [
         "SOS foi escolhido por ser fácil de reconhecer, não por significar 'Save Our Souls'.",
         "A letra E é o ponto único porque é a mais comum no inglês — Morse contou letras em uma gráfica.",
@@ -220,6 +227,11 @@ export const CODES: CodeModule[] = [
       encodeGuide: "Pegue o código ASCII da letra e converta para 8 dígitos binários.",
       decodeGuide: "Agrupe de 8 em 8 bits, converta para decimal e depois para o caractere ASCII.",
       applications: "Base de computadores, memória, redes e armazenamento — absolutamente tudo é binário por baixo.",
+      commonMistakes: [
+        "Esquecer de completar com zeros à esquerda — 'A' é 01000001, não 1000001.",
+        "Trocar a ordem dos bits (o da esquerda vale mais, como em decimal).",
+        "Contar errado as potências de 2 ao converter manualmente.",
+      ],
       curiosities: [
         "8 bits = 1 byte, capaz de representar 256 valores diferentes (0–255).",
         "A letra 'A' maiúscula é 65; a 'a' minúscula é 97.",
@@ -253,6 +265,10 @@ export const CODES: CodeModule[] = [
       encodeGuide: "Substitua cada caractere pelo seu número decimal ASCII.",
       decodeGuide: "Converta cada número de volta para o caractere correspondente.",
       applications: "Fundamento de texto em computadores, protocolos de internet e linguagens de programação.",
+      commonMistakes: [
+        "Confundir maiúsculas e minúsculas — 'A' (65) e 'a' (97) têm códigos diferentes.",
+        "Esquecer que dígitos '0'-'9' também têm código ASCII (48-57), não são o próprio número.",
+      ],
       curiosities: [
         "Os primeiros 32 códigos são 'de controle', invisíveis (como quebra de linha = 10).",
         "O espaço em branco é o código 32.",
@@ -286,6 +302,11 @@ export const CODES: CodeModule[] = [
       encodeGuide: "Converta o código do caractere para base 16 (dois dígitos).",
       decodeGuide: "Leia cada par hex, converta para decimal e depois para o caractere.",
       applications: "Cores em CSS (#FFD54F), endereços de memória, hashes, MAC address e depuração.",
+      commonMistakes: [
+        "Esquecer que hex vai de 0 a F (não só 0-9) — A=10, B=11... F=15.",
+        "Trocar a ordem dos dois dígitos de um byte.",
+        "Confundir hex com decimal — hex '10' vale 16, não dez.",
+      ],
       curiosities: [
         "A cor âmbar do CodeLingo é #FFD54F em hexadecimal.",
         "'DEAD' e 'BEEF' são valores hex válidos usados como marcadores por programadores.",
@@ -319,6 +340,10 @@ export const CODES: CodeModule[] = [
       encodeGuide: "Pegue 3 bytes, reparta em 4 blocos de 6 bits e mapeie para A–Z a–z 0–9 + /.",
       decodeGuide: "Reverta: cada 4 caracteres viram 3 bytes originais. O '=' é preenchimento.",
       applications: "Anexos de e-mail, imagens embutidas (data URI), tokens JWT e APIs web.",
+      commonMistakes: [
+        "Achar que Base64 protege dados — qualquer ferramenta decodifica em segundos.",
+        "Remover o '=' do final achando que é lixo — ele é essencial para decodificar certo.",
+      ],
       curiosities: [
         "O sinal '=' no fim é só preenchimento, não faz parte dos dados.",
         "Base64 aumenta o tamanho em ~33% — não é compressão!",
@@ -352,6 +377,10 @@ export const CODES: CodeModule[] = [
       encodeGuide: "Some N à posição de cada letra (A=0). Ex.: com N=3, A→D, B→E.",
       decodeGuide: "Subtraia N da posição de cada letra para voltar ao original.",
       applications: "Ensino de criptografia, quebra-cabeças e base histórica das cifras de substituição.",
+      commonMistakes: [
+        "Esquecer que o alfabeto 'dá a volta' — Z + 3 vira C, não passa do alfabeto.",
+        "Trocar o sinal do deslocamento ao decodificar (some para cifrar, subtraia para decifrar).",
+      ],
       curiosities: [
         "ROT13 é simplesmente uma César com deslocamento 13.",
         "Só existem 25 chaves possíveis — quebrar por força bruta é trivial.",
@@ -386,6 +415,10 @@ export const CODES: CodeModule[] = [
       encodeGuide: "Alinhe a chave sob o texto (repetindo-a). Some as posições das letras.",
       decodeGuide: "Alinhe a chave de novo e subtraia as posições da chave.",
       applications: "Marco na história da criptografia; base conceitual de cifras de fluxo modernas.",
+      commonMistakes: [
+        "Esquecer de repetir a chave até cobrir toda a mensagem.",
+        "Aplicar a mesma chave duas vezes sem alinhar corretamente as letras.",
+      ],
       curiosities: [
         "Foi quebrada por Charles Babbage e Friedrich Kasiski no século XIX.",
         "Se a chave for do tamanho da mensagem e aleatória, torna-se um one-time pad — teoricamente inquebrável.",
@@ -418,6 +451,10 @@ export const CODES: CodeModule[] = [
       encodeGuide: "Troque cada letra pelo seu padrão de pontos da célula Braille.",
       decodeGuide: "Leia cada célula de pontos e traduza para a letra correspondente.",
       applications: "Livros, placas, elevadores, embalagens de remédios e cédulas de dinheiro.",
+      commonMistakes: [
+        "Confundir a orientação dos pontos — a célula sempre tem 2 colunas × 3 linhas fixas.",
+        "Esquecer que o espaço entre palavras também é uma célula (vazia).",
+      ],
       curiosities: [
         "Braille criou o sistema a partir da 'escrita noturna' militar de Charles Barbier.",
         "Existe Braille para música e matemática também.",
@@ -450,6 +487,10 @@ export const CODES: CodeModule[] = [
       encodeGuide: "Troque cada letra pela palavra correspondente (A = Alfa).",
       decodeGuide: "Pegue a primeira letra de cada palavra.",
       applications: "Aviação, forças armadas, polícia, atendimento e soletração ao telefone.",
+      commonMistakes: [
+        "Usar palavras não-oficiais (ex.: 'Apple' em vez de 'Alfa') — isso quebra o padrão internacional.",
+        "Esquecer que só a primeira letra da palavra importa ao decodificar.",
+      ],
       curiosities: [
         "'Juliett' é escrito com dois T's de propósito, para falantes de francês.",
         "'X-ray' é a única com hífen.",
@@ -483,6 +524,10 @@ export const CODES: CodeModule[] = [
       encodeGuide: "Localize a letra na grade: bata a linha, pause, bata a coluna.",
       decodeGuide: "Conte as batidas: primeiro grupo = linha, segundo = coluna. Cruze na grade.",
       applications: "Prisões, situações de silêncio forçado e sinalização improvisada.",
+      commonMistakes: [
+        "Esquecer que K e C compartilham a mesma casa na grade 5×5.",
+        "Confundir a ordem: sempre linha primeiro, depois coluna.",
+      ],
       curiosities: [
         "Prisioneiros usavam o Tap Code para manter a moral e passar nomes.",
         "A letra K é omitida e substituída por C para caber em 5×5.",
@@ -515,6 +560,10 @@ export const CODES: CodeModule[] = [
       encodeGuide: "Substitua cada letra pelo formato geométrico da célula que a contém.",
       decodeGuide: "Combine o formato do símbolo com a célula correspondente para achar a letra.",
       applications: "Diários secretos, jogos, geocaching e história maçônica.",
+      commonMistakes: [
+        "Esquecer o ponto que diferencia a segunda grade da primeira.",
+        "Confundir células vizinhas parecidas — sempre confira as 4 linhas ao redor da letra.",
+      ],
       curiosities: [
         "Aparece em lápides de maçons do século XVIII.",
         "É uma cifra de substituição — tão fácil de quebrar quanto a César.",
@@ -546,6 +595,10 @@ export const CODES: CodeModule[] = [
       encodeGuide: "Troque cada letra pelo seu grupo de 5 letras a/b.",
       decodeGuide: "Agrupe de 5 em 5 e traduza cada grupo de volta.",
       applications: "Esteganografia (esconder mensagens dentro de textos) e criptografia histórica.",
+      commonMistakes: [
+        "Contar menos ou mais de 5 símbolos por letra — o grupo é sempre fixo em 5.",
+        "Confundir I/J e U/V, que compartilham o mesmo código no alfabeto de 24 letras.",
+      ],
       curiosities: [
         "É uma das primeiras formas de esteganografia binária.",
         "Usa 5 bits: 2^5 = 32, suficiente para 24–26 letras.",
@@ -579,6 +632,10 @@ export const CODES: CodeModule[] = [
       encodeGuide: "Para cada letra, use a letra na posição oposta do alfabeto.",
       decodeGuide: "É simétrica: aplicar de novo devolve o texto original.",
       applications: "Estudos bíblicos, ensino de criptografia e quebra-cabeças.",
+      commonMistakes: [
+        "Contar a posição errada no alfabeto ao espelhar manualmente.",
+        "Achar que precisa de uma chave — Atbash não usa chave, é sempre o mesmo espelhamento.",
+      ],
       curiosities: [
         "O nome vem das letras hebraicas Aleph-Tav-Beth-Shin.",
         "Aplicar Atbash duas vezes devolve o texto original.",
@@ -612,6 +669,10 @@ export const CODES: CodeModule[] = [
       encodeGuide: "Some 13 à posição de cada letra.",
       decodeGuide: "Some 13 de novo (13+13=26, volta ao original).",
       applications: "Esconder spoilers, respostas de piadas e conteúdo sensível em fóruns.",
+      commonMistakes: [
+        "Achar que ROT13 protege informação sensível — é só ofuscação, não segurança.",
+        "Esquecer que letras e números não-alfabéticos (pontuação) não mudam.",
+      ],
       curiosities: [
         "É a própria inversa: codificar = decodificar.",
         "Não oferece nenhuma segurança real, só ofuscação leve.",
@@ -645,6 +706,10 @@ export const CODES: CodeModule[] = [
       encodeGuide: "Gray = binário XOR (binário deslocado 1 à direita).",
       decodeGuide: "Reconstrua acumulando XOR dos bits da esquerda para a direita.",
       applications: "Encoders rotativos, TVs antigas, correção de erros e mapas de Karnaugh.",
+      commonMistakes: [
+        "Achar que Gray é só binário normal — a ordem dos números é diferente.",
+        "Errar o XOR ao converter manualmente entre Gray e binário.",
+      ],
       curiosities: [
         "Em encoders, evita leituras erradas quando vários bits mudariam ao mesmo tempo.",
         "Cada número consecutivo difere em só 1 bit — daí 'distância de Hamming 1'.",
@@ -678,6 +743,10 @@ export const CODES: CodeModule[] = [
       encodeGuide: "Converta o código do caractere para base 8.",
       decodeGuide: "Leia cada número octal, converta para decimal e depois para o caractere.",
       applications: "Permissões de arquivos no Unix/Linux (ex.: chmod 755) e sistemas legados.",
+      commonMistakes: [
+        "Confundir octal com decimal — octal só usa dígitos de 0 a 7.",
+        "Esquecer que cada dígito octal vale 3 bits, não 1.",
+      ],
       curiosities: [
         "'chmod 777' usa octal para definir permissões de arquivos.",
         "Cada dígito octal representa exatamente 3 bits.",
@@ -711,6 +780,10 @@ export const CODES: CodeModule[] = [
       encodeGuide: "Troque cada caractere pelo seu code point U+XXXX.",
       decodeGuide: "Converta cada code point de volta para o caractere.",
       applications: "Todo texto moderno: web, apps, emojis e idiomas do mundo inteiro.",
+      commonMistakes: [
+        "Confundir Unicode com UTF-8 — Unicode é a tabela, UTF-8 é uma forma de codificar os bytes.",
+        "Esquecer o prefixo 'U+' e a base hexadecimal ao escrever um code point.",
+      ],
       curiosities: [
         "Unicode já define mais de 149.000 caracteres.",
         "Emojis são caracteres Unicode como qualquer letra.",
@@ -743,6 +816,10 @@ export const CODES: CodeModule[] = [
       encodeGuide: "Posicione os dois braços nos ângulos correspondentes à letra.",
       decodeGuide: "Observe os ângulos dos dois braços e cruze com a tabela de letras.",
       applications: "Náutica, cerimônias e comunicação visual entre navios.",
+      commonMistakes: [
+        "Confundir ângulos próximos (ex.: 45° e 90°) sem referência visual clara.",
+        "Esquecer que a ordem dos dois braços importa — trocar as mãos muda a letra.",
+      ],
       curiosities: [
         "O símbolo da paz ☮ é baseado nas letras semafóricas N e D ('Nuclear Disarmament').",
         "Ainda é ensinado em escolas navais.",
@@ -774,6 +851,10 @@ export const CODES: CodeModule[] = [
       encodeGuide: "Os dados são convertidos em bits, dispostos na matriz com máscara e correção de erro.",
       decodeGuide: "A câmera localiza os marcadores de canto, alinha a grade e lê os módulos.",
       applications: "Pagamentos (Pix), cardápios, ingressos, links e autenticação.",
+      commonMistakes: [
+        "Achar que todo QR guarda a mesma quantidade de dados — o tamanho varia com a versão.",
+        "Confundir QR com código de barras — QR é 2D, código de barras é 1D.",
+      ],
       curiosities: [
         "Um QR pode guardar até ~4.296 caracteres alfanuméricos.",
         "Funciona mesmo com até ~30% do código danificado, graças à correção Reed–Solomon.",
@@ -804,6 +885,10 @@ export const CODES: CodeModule[] = [
       encodeGuide: "Cada dígito vira um padrão específico de barras claras e escuras de larguras definidas.",
       decodeGuide: "O scanner mede a largura de barras/espaços e converte de volta em números.",
       applications: "Varejo, logística, estoque, bilhetes e rastreamento de encomendas.",
+      commonMistakes: [
+        "Achar que o código de barras guarda o preço — ele só guarda um número de identificação.",
+        "Confundir o dígito verificador com parte dos dados reais do produto.",
+      ],
       curiosities: [
         "O primeiro item escaneado foi um chiclete Wrigley, em 1974.",
         "Woodland se inspirou no Morse ao desenhar as primeiras linhas na areia.",

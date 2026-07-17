@@ -6,10 +6,10 @@ export default function ProjectCard({ project }: { project: Project }) {
   const status = statusStyles[project.status];
 
   return (
-    <article className="group relative flex flex-col overflow-hidden rounded-2xl border card-surface shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+    <article className="group relative flex flex-col overflow-hidden rounded-2xl border card-surface shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:border-terracota/40 hover:shadow-2xl">
       <Link
         href={`/projects/${project.id}`}
-        className="relative block aspect-[4/3] overflow-hidden"
+        className="relative block aspect-[16/10] overflow-hidden"
         aria-label={`Abrir ${project.title}`}
       >
         <Image
@@ -18,10 +18,11 @@ export default function ProjectCard({ project }: { project: Project }) {
           fill
           loading="lazy"
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/0 to-black/0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
         <span
-          className={`absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${status.badge}`}
+          className={`absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${status.badge}`}
         >
           <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
           {status.label}
@@ -32,7 +33,7 @@ export default function ProjectCard({ project }: { project: Project }) {
         <span className="text-xs font-medium uppercase tracking-wider text-terracota">
           {project.category}
         </span>
-        <h3 className="mt-1 font-serif text-xl font-semibold leading-snug">
+        <h3 className="mt-1.5 font-serif text-xl font-semibold leading-snug">
           <Link
             href={`/projects/${project.id}`}
             className="transition-colors hover:text-terracota"
@@ -40,7 +41,7 @@ export default function ProjectCard({ project }: { project: Project }) {
             {project.title}
           </Link>
         </h3>
-        <p className="mt-2 line-clamp-2 flex-1 text-sm text-muted">
+        <p className="mt-2.5 line-clamp-3 flex-1 text-[0.925rem] leading-relaxed text-[var(--text)]/80">
           {project.description}
         </p>
 
@@ -60,33 +61,24 @@ export default function ProjectCard({ project }: { project: Project }) {
             </div>
           )}
 
-        {project.tags.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-1.5">
-            {project.tags.slice(0, 3).map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full bg-[var(--bg)] px-2.5 py-0.5 text-xs text-muted"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Actions revealed on hover */}
-        <div className="mt-4 flex gap-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100 max-sm:opacity-100">
+        {/* Ação principal — sempre visível, sem lista de tecnologias */}
+        <div className="mt-5 flex items-center justify-between border-t border-[var(--border)] pt-4">
           <Link
             href={`/projects/${project.id}`}
-            className="flex-1 rounded-full bg-terracota px-4 py-2 text-center text-xs font-semibold text-cream transition-colors hover:bg-terracota-dark"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-terracota transition-all duration-300 group-hover:gap-2.5"
           >
             Ver detalhes
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M13 5l7 7-7 7" />
+            </svg>
           </Link>
           {project.links.repo && (
             <a
               href={project.links.repo}
               target="_blank"
               rel="noreferrer"
-              className="rounded-full border border-[var(--border)] px-4 py-2 text-xs font-semibold transition-colors hover:border-terracota hover:text-terracota"
+              onClick={(e) => e.stopPropagation()}
+              className="rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-semibold transition-colors hover:border-terracota hover:text-terracota"
             >
               Repo
             </a>

@@ -10,7 +10,7 @@ export default function Confetti({ show }: { show: boolean }) {
         left: (i * 37) % 100,
         delay: (i % 12) * 0.12,
         dur: 2.4 + ((i * 13) % 18) / 10,
-        color: ["#FFD54F", "#FFC107", "#FFB300", "#E69500", "#ffffff"][i % 5],
+        color: ["#FFD54F", "#FFC107", "#FF8F00", "#FF6F00", "#ffffff"][i % 5],
         size: 6 + ((i * 7) % 8),
         rot: (i * 47) % 360,
       })),

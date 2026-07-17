@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { CODES } from "@/codelingo/codes";
 import { isCourseComplete, leagueFromXp, levelFromXp, useStore } from "@/codelingo/store";
 
-const AMBER = "#FFD54F";
+const AMBER = "#FFC107";
 
 export default function StatsPage() {
   const { p } = useStore();
@@ -93,7 +93,7 @@ export default function StatsPage() {
               const done = isCourseComplete(p.courses[c.id]);
               const mast = p.courses[c.id]?.mastered;
               return (
-                <span key={c.id} title={c.name} style={{ fontSize: "1.3rem", opacity: done ? 1 : 0.3, filter: mast ? "drop-shadow(0 0 6px rgba(255,213,79,0.6))" : "none" }}>
+                <span key={c.id} title={c.name} style={{ fontSize: "1.3rem", opacity: done ? 1 : 0.3, filter: mast ? "drop-shadow(0 0 6px rgba(255,193,7,0.6))" : "none" }}>
                   {c.icon}
                 </span>
               );

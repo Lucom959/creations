@@ -64,7 +64,7 @@ export default function CipherBot() {
           borderRadius: "50%",
           border: "none",
           cursor: "pointer",
-          background: "linear-gradient(180deg,#FFD54F,#FFB300)",
+          background: "linear-gradient(180deg,#FFD54F,#FF8F00)",
           color: "#1a1400",
           fontSize: "1.6rem",
           boxShadow: "0 8px 24px rgba(255,179,0,0.35)",
@@ -127,7 +127,7 @@ export default function CipherBot() {
                       borderRadius: 8,
                       overflowX: "auto",
                       fontSize: "0.8rem",
-                      color: "#FFD54F",
+                      color: "var(--cl-amber)",
                       whiteSpace: "pre-wrap",
                       wordBreak: "break-word",
                     }}
