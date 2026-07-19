@@ -4,7 +4,8 @@
  * Estado global do CodeLingo (React Context) com persistência em localStorage.
  * Cada CÓDIGO é um curso independente: progresso, XP e lições próprios.
  * O XP global (perfil/ligas) soma o de todos os cursos, mas o progresso de um
- * curso nunca afeta o de outro.
+ * curso nunca afeta o de outro. A lista de lições de cada curso é obtida via
+ * `getCourseSteps(codeId)` — varia conforme a família pedagógica do código.
  */
 
 import {
@@ -16,9 +17,9 @@ import {
   useState,
 } from "react";
 import { ACHIEVEMENTS, AchievementInput } from "./achievements";
-import { COURSE_STEPS } from "./curriculum";
+import { getCourseSteps } from "./curriculum";
 
-const STORAGE_KEY = "codelingo.progress.v3";
+const STORAGE_KEY = "codelingo.progress.v4";
 
 export interface LessonState {
   completed: boolean;
@@ -65,6 +66,8 @@ export interface Progress {
   favorites: string[];
   lastCourse: string | null;
   theme: "dark" | "light";
+  /** Letras erradas por curso — usado para priorizar a revisão de erros. */
+  weakSpots: Record<string, Record<string, number>>;
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -97,6 +100,7 @@ const initial: Progress = {
   favorites: [],
   lastCourse: null,
   theme: "dark",
+  weakSpots: {},
 };
 
 // ---- Níveis e ligas --------------------------------------------------------
@@ -137,13 +141,13 @@ export function leagueFromXp(xp: number) {
 
 // ---- Helpers de curso ------------------------------------------------------
 
-export function isCourseComplete(cp?: CourseProgress): boolean {
+export function isCourseComplete(codeId: string, cp?: CourseProgress): boolean {
   if (!cp) return false;
-  return COURSE_STEPS.every((s) => cp.lessons[s.id]?.completed);
+  return getCourseSteps(codeId).every((s) => cp.lessons[s.id]?.completed);
 }
-export function courseLessonsDone(cp?: CourseProgress): number {
+export function courseLessonsDone(codeId: string, cp?: CourseProgress): number {
   if (!cp) return 0;
-  return COURSE_STEPS.filter((s) => cp.lessons[s.id]?.completed).length;
+  return getCourseSteps(codeId).filter((s) => cp.lessons[s.id]?.completed).length;
 }
 
 // ---- Contexto --------------------------------------------------------------
@@ -169,6 +173,8 @@ interface StoreValue {
   useFreeze: () => void;
   reset: () => void;
   achievementInput: AchievementInput;
+  recordMiss: (codeId: string, letter: string) => void;
+  weakLettersFor: (codeId: string, limit?: number) => string[];
 }
 
 const StoreCtx = createContext<StoreValue | null>(null);
@@ -182,7 +188,7 @@ export function CodeLingoProvider({ children }: { children: React.ReactNode }) {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<Progress>;
-        setP({ ...initial, ...parsed, courses: { ...parsed.courses } });
+        setP({ ...initial, ...parsed, courses: { ...parsed.courses }, weakSpots: { ...parsed.weakSpots } });
       }
     } catch {
       /* ignore */
@@ -208,7 +214,7 @@ export function CodeLingoProvider({ children }: { children: React.ReactNode }) {
       level: levelFromXp(p.xp),
       streak: p.streak,
       lessonsCompleted: p.history.length,
-      coursesCompleted: Object.values(p.courses).filter((c) => isCourseComplete(c)).length,
+      coursesCompleted: Object.entries(p.courses).filter(([id, c]) => isCourseComplete(id, c)).length,
       perfectLessons: p.perfectLessons,
       masteredCodes: mastered,
       totalCorrect: p.totalCorrect,
@@ -222,17 +228,39 @@ export function CodeLingoProvider({ children }: { children: React.ReactNode }) {
   /** Lição desbloqueada se for a 1ª do curso ou se a anterior foi concluída. */
   const isLessonUnlocked = useCallback(
     (codeId: string, stepId: string) => {
-      const idx = COURSE_STEPS.findIndex((s) => s.id === stepId);
+      const steps = getCourseSteps(codeId);
+      const idx = steps.findIndex((s) => s.id === stepId);
       if (idx <= 0) return true;
-      const prev = COURSE_STEPS[idx - 1];
+      const prev = steps[idx - 1];
       return !!p.courses[codeId]?.lessons[prev.id]?.completed;
     },
     [p.courses],
   );
 
+  const recordMiss = useCallback((codeId: string, letter: string) => {
+    setP((prev) => {
+      const forCode = { ...(prev.weakSpots[codeId] ?? {}) };
+      forCode[letter] = (forCode[letter] ?? 0) + 1;
+      return { ...prev, weakSpots: { ...prev.weakSpots, [codeId]: forCode } };
+    });
+  }, []);
+
+  const weakLettersFor = useCallback(
+    (codeId: string, limit = 5) => {
+      const forCode = p.weakSpots[codeId];
+      if (!forCode) return [];
+      return Object.entries(forCode)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+        .map(([letter]) => letter);
+    },
+    [p.weakSpots],
+  );
+
   const completeLesson = useCallback(
     (codeId: string, stepId: string, correct: number, total: number, timeSec: number): CompleteResult => {
-      const step = COURSE_STEPS.find((s) => s.id === stepId);
+      const steps = getCourseSteps(codeId);
+      const step = steps.find((s) => s.id === stepId);
       const accuracy = total > 0 ? correct / total : 1;
       const graded = step?.kind !== "learn";
       const perfect = graded && total > 0 && correct === total;
@@ -272,8 +300,8 @@ export function CodeLingoProvider({ children }: { children: React.ReactNode }) {
           attempts: cp.attempts + 1,
           bestScore: Math.max(cp.bestScore, graded ? accuracy : cp.bestScore),
         };
-        const wasComplete = isCourseComplete(cp);
-        const courseCompleted = COURSE_STEPS.every((s) => lessons[s.id]?.completed) && !wasComplete;
+        const wasComplete = isCourseComplete(codeId, cp);
+        const courseCompleted = steps.every((s) => lessons[s.id]?.completed) && !wasComplete;
 
         const oldLevel = levelFromXp(prev.xp);
         const newXp = prev.xp + xpGained;
@@ -311,7 +339,7 @@ export function CodeLingoProvider({ children }: { children: React.ReactNode }) {
           level: newLevel,
           streak,
           lessonsCompleted: next.history.length,
-          coursesCompleted: Object.values(next.courses).filter((c) => isCourseComplete(c)).length,
+          coursesCompleted: Object.entries(next.courses).filter(([id, c]) => isCourseComplete(id, c)).length,
           perfectLessons: next.perfectLessons,
           masteredCodes: Object.entries(next.courses).filter(([, c]) => c.mastered).map(([id]) => id),
           totalCorrect: next.totalCorrect,
@@ -363,6 +391,8 @@ export function CodeLingoProvider({ children }: { children: React.ReactNode }) {
     useFreeze,
     reset,
     achievementInput,
+    recordMiss,
+    weakLettersFor,
   };
 
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { CODES, getCode } from "@/codelingo/codes";
-import { COURSE_STEPS, TOTAL_STEPS, getStep } from "@/codelingo/curriculum";
+import { getCourseSteps } from "@/codelingo/curriculum";
 import {
   courseLessonsDone,
   isCourseComplete,
@@ -34,17 +34,17 @@ export default function Dashboard() {
     const touched = [...new Set(p.history.map((h) => h.codeId))].reverse();
     return touched
       .map((id) => getCode(id))
-      .filter((c): c is NonNullable<typeof c> => !!c && !isCourseComplete(p.courses[c.id]))
+      .filter((c): c is NonNullable<typeof c> => !!c && !isCourseComplete(c.id, p.courses[c.id]))
       .slice(0, 4);
   }, [p.history, p.courses]);
 
-  const completedCourses = CODES.filter((c) => isCourseComplete(p.courses[c.id]));
+  const completedCourses = CODES.filter((c) => isCourseComplete(c.id, p.courses[c.id]));
 
   // Recomendação de revisão: cursos com pior desempenho entre os já iniciados
   const reviewSuggestions = useMemo(() => {
     return CODES.filter((c) => {
       const cp = p.courses[c.id];
-      return cp && courseLessonsDone(cp) > 0 && cp.bestScore < 0.8 && !cp.mastered;
+      return cp && courseLessonsDone(c.id, cp) > 0 && cp.bestScore < 0.8 && !cp.mastered;
     })
       .sort((a, b) => (p.courses[a.id]?.bestScore ?? 1) - (p.courses[b.id]?.bestScore ?? 1))
       .slice(0, 2);
@@ -52,7 +52,7 @@ export default function Dashboard() {
 
   const lastCode = p.lastCourse ? getCode(p.lastCourse) : undefined;
   const lastCp = lastCode ? courseProgress(lastCode.id) : undefined;
-  const lastNextStep = lastCode ? COURSE_STEPS.find((s) => !lastCp?.lessons[s.id]?.completed) : undefined;
+  const lastNextStep = lastCode ? getCourseSteps(lastCode.id).find((s) => !lastCp?.lessons[s.id]?.completed) : undefined;
 
   const greeting = (() => {
     const h = new Date().getHours();
@@ -124,18 +124,19 @@ export default function Dashboard() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
             {inProgress.map((code) => {
               const cp = p.courses[code.id];
-              const done = courseLessonsDone(cp);
-              const nextStep = COURSE_STEPS.find((s) => !cp?.lessons[s.id]?.completed);
+              const courseSteps = getCourseSteps(code.id);
+              const done = courseLessonsDone(code.id, cp);
+              const nextStep = courseSteps.find((s) => !cp?.lessons[s.id]?.completed);
               return (
                 <Link key={code.id} href={nextStep ? `/codelingo/lesson/${code.id}?type=${nextStep.id}` : `/codelingo/course/${code.id}`} className="cl-course-card" style={{ textDecoration: "none", color: "inherit" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ fontSize: "1.8rem" }}>{code.icon}</span>
-                    <span className="cl-chip">{done}/{TOTAL_STEPS}</span>
+                    <span className="cl-chip">{done}/{courseSteps.length}</span>
                   </div>
                   <div className="cl-display" style={{ fontWeight: 700, fontSize: "0.95rem" }}>{code.name}</div>
                   {nextStep && <div className="cl-muted" style={{ fontSize: "0.72rem" }}>Próximo: {nextStep.title}</div>}
                   <div className="cl-progress" style={{ height: 6 }}>
-                    <span style={{ width: `${(done / TOTAL_STEPS) * 100}%` }} />
+                    <span style={{ width: `${(done / courseSteps.length) * 100}%` }} />
                   </div>
                 </Link>
               );
@@ -151,7 +152,7 @@ export default function Dashboard() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
             {reviewSuggestions.map((code) => {
               const cp = p.courses[code.id];
-              const step = getStep("u5-review");
+              const step = getCourseSteps(code.id).find((s) => s.kind === "review");
               return (
                 <Link key={code.id} href={step ? `/codelingo/lesson/${code.id}?type=${step.id}` : `/codelingo/course/${code.id}`} className="cl-card" style={{ padding: 16, display: "flex", alignItems: "center", gap: 14, textDecoration: "none", color: "inherit" }}>
                   <span style={{ fontSize: "1.8rem" }}>{code.icon}</span>

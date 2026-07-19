@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
 import { getCode } from "@/codelingo/codes";
-import { COURSE_STEPS, TOTAL_STEPS, TOTAL_UNITS, stepsForUnit } from "@/codelingo/curriculum";
+import { getCourseSteps, totalUnits, stepsForUnit } from "@/codelingo/curriculum";
 import { courseLessonsDone, isCourseComplete, useStore } from "@/codelingo/store";
 
 export default function CourseDetailPage() {
@@ -14,10 +14,12 @@ export default function CourseDetailPage() {
   if (!code) return notFound();
 
   const cp = ready ? courseProgress(code.id) : undefined;
-  const done = courseLessonsDone(cp);
-  const total = TOTAL_STEPS;
+  const steps = getCourseSteps(code.id);
+  const units = totalUnits(code.id);
+  const done = courseLessonsDone(code.id, cp);
+  const total = steps.length;
   const pct = total > 0 ? done / total : 0;
-  const complete = isCourseComplete(cp);
+  const complete = isCourseComplete(code.id, cp);
   const mastered = !!cp?.mastered;
   const isFav = p.favorites.includes(code.id);
 
@@ -40,7 +42,7 @@ export default function CourseDetailPage() {
           <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
             <span className="cl-chip">{"⭐".repeat(code.difficulty)} dificuldade</span>
             <span className="cl-chip">{code.category}</span>
-            <span className="cl-chip">{TOTAL_UNITS} unidades · {total} lições</span>
+            <span className="cl-chip">{units} unidades · {total} lições</span>
           </div>
         </div>
         <button
@@ -65,25 +67,25 @@ export default function CourseDetailPage() {
 
       {/* Árvore do curso, agrupada por unidade */}
       <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-        {Array.from({ length: TOTAL_UNITS }, (_, unitIndex) => {
-          const steps = stepsForUnit(unitIndex);
-          const unitDone = steps.filter((s) => cp?.lessons[s.id]?.completed).length;
-          const unitTotal = steps.length;
+        {Array.from({ length: units }, (_, unitIndex) => {
+          const unitSteps = stepsForUnit(code.id, unitIndex);
+          const unitDone = unitSteps.filter((s) => cp?.lessons[s.id]?.completed).length;
+          const unitTotal = unitSteps.length;
           return (
             <div key={unitIndex}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                <span style={{ fontSize: "1.4rem" }}>{steps[0].unitIcon}</span>
+                <span style={{ fontSize: "1.4rem" }}>{unitSteps[0].unitIcon}</span>
                 <div style={{ flex: 1 }}>
                   <div className="cl-display" style={{ fontWeight: 700, fontSize: "1.05rem" }}>
-                    Unidade {unitIndex + 1} · {steps[0].unitTitle}
+                    Unidade {unitIndex + 1} · {unitSteps[0].unitTitle}
                   </div>
                 </div>
                 <span className="cl-chip">{unitDone}/{unitTotal}</span>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingLeft: 8, borderLeft: "2px solid var(--cl-border)" }}>
-                {steps.map((step) => {
-                  const globalIndex = COURSE_STEPS.findIndex((s) => s.id === step.id);
+                {unitSteps.map((step) => {
+                  const globalIndex = steps.findIndex((s) => s.id === step.id);
                   const unlocked = ready ? isLessonUnlocked(code.id, step.id) : globalIndex === 0;
                   const stepDone = !!cp?.lessons[step.id]?.completed;
                   const score = cp?.lessons[step.id]?.bestScore;

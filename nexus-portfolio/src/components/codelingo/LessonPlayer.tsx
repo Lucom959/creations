@@ -5,24 +5,29 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useRef, useState, useEffect } from "react";
 import { getCode } from "@/codelingo/codes";
 import { Exercise } from "@/codelingo/exercises";
-import { buildLesson, checkExercise, COURSE_STEPS, TOTAL_UNITS, TOTAL_STEPS, TeachCard } from "@/codelingo/curriculum";
+import { buildLesson, checkExercise, getCourseSteps, TeachCard } from "@/codelingo/curriculum";
 import { ACHIEVEMENTS } from "@/codelingo/achievements";
 import { useStore } from "@/codelingo/store";
 import { sfx, playMorse, resumeAudio } from "@/codelingo/sound";
 import Confetti from "./Confetti";
 import { SemaphoreDiagram, PigpenDiagram } from "./CodeDiagrams";
+import MatchExercise from "./MatchExercise";
+import DragExercise from "./DragExercise";
 
 export default function LessonPlayer({ id }: { id: string }) {
   const router = useRouter();
   const search = useSearchParams();
-  const stepId = search.get("type") || COURSE_STEPS[0].id;
-  const { completeLesson } = useStore();
+  const { completeLesson, weakLettersFor, recordMiss } = useStore();
   const code = getCode(id);
+  const steps = useMemo(() => getCourseSteps(id), [id]);
+  const stepId = search.get("type") || steps[0]?.id;
+  const stepIndex = steps.findIndex((s) => s.id === stepId);
+  const totalUnits = useMemo(() => new Set(steps.map((s) => s.unitIndex)).size, [steps]);
 
   const [seed] = useState(() => Math.floor(Math.random() * 1e6) + 1);
-  const lesson = useMemo(() => buildLesson(id, stepId, seed), [id, stepId, seed]);
+  const weakLetters = useMemo(() => weakLettersFor(id), [id, weakLettersFor]);
+  const lesson = useMemo(() => buildLesson(id, stepId ?? "", seed, weakLetters), [id, stepId, seed, weakLetters]);
   const step = lesson?.step;
-  const stepIndex = COURSE_STEPS.findIndex((s) => s.id === stepId);
 
   const [cardIdx, setCardIdx] = useState(0);
   const [index, setIndex] = useState(0);
@@ -90,7 +95,10 @@ export default function LessonPlayer({ id }: { id: string }) {
     if (ok) {
       setCorrectCount((c) => c + 1);
       sfx.correct();
-    } else sfx.wrong();
+    } else {
+      sfx.wrong();
+      if (ex.targetLetter) recordMiss(id, ex.targetLetter);
+    }
   };
   const next = () => {
     const wasCorrect = feedback === "correct";
@@ -103,7 +111,7 @@ export default function LessonPlayer({ id }: { id: string }) {
   if (done && result) {
     const total = isLearn ? 0 : exercises.length;
     const accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 100;
-    const nextStep = COURSE_STEPS[stepIndex + 1];
+    const nextStep = steps[stepIndex + 1];
     return (
       <>
         <Confetti show />
@@ -193,9 +201,8 @@ export default function LessonPlayer({ id }: { id: string }) {
         </div>
         <span className="cl-chip">{code.icon} {stepNow + 1}/{stepCount}</span>
       </div>
-      {/* Item 82: o usuário sempre sabe onde está no curso */}
       <div className="cl-muted" style={{ fontSize: "0.72rem", textAlign: "center" }}>
-        Unidade {step.unitIndex + 1} de {TOTAL_UNITS} · {step.unitTitle} — Passo {stepIndex + 1} de {TOTAL_STEPS} do curso
+        Unidade {step.unitIndex + 1} de {totalUnits} · {step.unitTitle} — Passo {stepIndex + 1} de {steps.length} do curso
       </div>
     </div>
   );
@@ -213,18 +220,20 @@ export default function LessonPlayer({ id }: { id: string }) {
             <div className="cl-muted" style={{ fontSize: "0.72rem" }}>{code.name} · {step.unitTitle}</div>
           </div>
         </div>
-        <TeachCardView key={card.title} card={card} />
+        {card && <TeachCardView key={card.title} card={card} />}
         <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
           {cardIdx > 0 && (
             <button type="button" className="cl-btn cl-btn-ghost" style={{ padding: "14px 18px" }} onClick={() => setCardIdx((c) => c - 1)}>←</button>
           )}
           <button type="button" className="cl-btn cl-btn-amber" style={{ flex: 1, padding: "14px" }} onClick={nextCard}>
-            {cardIdx + 1 >= teach.length ? "Continuar →" : "Continuar →"}
+            Continuar →
           </button>
         </div>
       </div>
     );
   }
+
+  const isInteractiveKind = ex?.kind === "match" || ex?.kind === "drag";
 
   // ---- Render: EXERCÍCIOS ----
   return (
@@ -249,6 +258,30 @@ export default function LessonPlayer({ id }: { id: string }) {
             <div style={{ textAlign: "center", marginBottom: 18 }}>
               <button type="button" className="cl-btn cl-btn-amber" style={{ padding: "12px 22px" }} onClick={() => { resumeAudio(); playMorse(ex.audio!); }}>🔊 Tocar Morse</button>
             </div>
+          )}
+
+          {ex.kind === "match" && ex.pairs && (
+            <MatchExercise
+              pairs={ex.pairs}
+              onDone={(mistakes) => {
+                const ok = mistakes === 0;
+                setFeedback(ok ? "correct" : "wrong");
+                if (ok) setCorrectCount((c) => c + 1);
+              }}
+            />
+          )}
+
+          {ex.kind === "drag" && ex.dragLabel && ex.options && (
+            <DragExercise
+              dragLabel={ex.dragLabel}
+              options={ex.options}
+              answer={ex.answer}
+              onDone={(correct) => {
+                setFeedback(correct ? "correct" : "wrong");
+                if (correct) setCorrectCount((c) => c + 1);
+                else if (ex.targetLetter) recordMiss(id, ex.targetLetter);
+              }}
+            />
           )}
 
           {ex.kind === "multiple" && ex.options && (
@@ -283,7 +316,7 @@ export default function LessonPlayer({ id }: { id: string }) {
           {feedback && (
             <div className="cl-fade-up" style={{ marginTop: 16, padding: "12px 14px", borderRadius: 12, background: feedback === "correct" ? "rgba(255,193,7,0.1)" : "rgba(217,101,78,0.12)", border: `1px solid ${feedback === "correct" ? "var(--cl-amber)" : "var(--cl-err)"}` }}>
               <strong className={feedback === "correct" ? "cl-amber" : ""}>{feedback === "correct" ? "✅ Correto!" : "❌ Quase!"}</strong>
-              {feedback === "wrong" && <div style={{ fontSize: "0.85rem", marginTop: 4 }}>A resposta certa é <strong className="cl-amber">{ex.answer}</strong>.</div>}
+              {feedback === "wrong" && !isInteractiveKind && <div style={{ fontSize: "0.85rem", marginTop: 4 }}>A resposta certa é <strong className="cl-amber">{ex.answer}</strong>.</div>}
               {ex.explain && <div className="cl-muted" style={{ fontSize: "0.82rem", marginTop: 4, wordBreak: "break-word" }}>{ex.explain}</div>}
               {ex.guided && ex.breakdown && (
                 <div style={{ marginTop: 8, padding: 8, background: "rgba(0,0,0,0.25)", borderRadius: 8, fontFamily: "var(--font-grotesk)", fontSize: "0.8rem", color: "var(--cl-amber)", wordBreak: "break-word" }}>
@@ -295,13 +328,20 @@ export default function LessonPlayer({ id }: { id: string }) {
         </div>
       )}
 
-      <div style={{ marginTop: 24 }}>
-        {feedback === null ? (
-          <button type="button" className="cl-btn cl-btn-amber" style={{ width: "100%", padding: "14px" }} disabled={ex?.kind === "multiple" ? selected === null : text.trim() === ""} onClick={submit}>Verificar</button>
-        ) : (
+      {!isInteractiveKind && (
+        <div style={{ marginTop: 24 }}>
+          {feedback === null ? (
+            <button type="button" className="cl-btn cl-btn-amber" style={{ width: "100%", padding: "14px" }} disabled={ex?.kind === "multiple" ? selected === null : text.trim() === ""} onClick={submit}>Verificar</button>
+          ) : (
+            <button type="button" className="cl-btn cl-btn-amber" style={{ width: "100%", padding: "14px" }} onClick={next}>Continuar →</button>
+          )}
+        </div>
+      )}
+      {isInteractiveKind && feedback && (
+        <div style={{ marginTop: 24 }}>
           <button type="button" className="cl-btn cl-btn-amber" style={{ width: "100%", padding: "14px" }} onClick={next}>Continuar →</button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

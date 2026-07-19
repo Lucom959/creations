@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { CODES, CodeModule } from "@/codelingo/codes";
-import { TOTAL_STEPS, TOTAL_UNITS } from "@/codelingo/curriculum";
+import { getCourseSteps } from "@/codelingo/curriculum";
 import { CourseProgress, courseLessonsDone, isCourseComplete, useStore } from "@/codelingo/store";
 
 const CATEGORIES = ["Todas", "Fundamentos", "Numéricos", "Cifras", "Táteis & Visuais", "Comunicação"] as const;
@@ -32,7 +32,7 @@ export default function CoursesPage() {
           Escolha um Código
         </h1>
         <p className="cl-muted" style={{ marginTop: 6, maxWidth: 560 }}>
-          Cada código é um curso completo e independente, com {TOTAL_UNITS} unidades e {TOTAL_STEPS} lições — do zero absoluto até a prova final. Escolha por onde começar: o progresso de um curso nunca afeta o dos outros.
+          Cada código é um curso completo e independente. O ensino é progressivo — poucos símbolos novos por lição, sempre misturados com o que você já sabe — do zero absoluto até a prova final. O progresso de um curso nunca afeta o dos outros.
         </p>
       </div>
 
@@ -85,11 +85,11 @@ export default function CoursesPage() {
 }
 
 function CourseCard({ code, cp }: { code: CodeModule; cp: CourseProgress | undefined }) {
-  const done = courseLessonsDone(cp);
-  const total = TOTAL_STEPS;
+  const total = getCourseSteps(code.id).length;
+  const done = courseLessonsDone(code.id, cp);
   const pct = total > 0 ? done / total : 0;
   const started = done > 0;
-  const complete = isCourseComplete(cp);
+  const complete = isCourseComplete(code.id, cp);
   const mastered = !!cp?.mastered;
 
   return (

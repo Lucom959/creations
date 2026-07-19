@@ -24,7 +24,7 @@ export default function ProfilePage() {
   const level = levelFromXp(p.xp);
   const league = leagueFromXp(p.xp);
   const unlocked = useMemo(() => ACHIEVEMENTS.filter((a) => a.check(achievementInput)), [achievementInput]);
-  const completedCourses = Object.values(p.courses).filter((c) => isCourseComplete(c)).length;
+  const completedCourses = Object.entries(p.courses).filter(([id, c]) => isCourseComplete(id, c)).length;
   const masteredCourses = Object.values(p.courses).filter((c) => c.mastered).length;
   const accuracy = Math.round(p.bestAccuracy * 100);
 
