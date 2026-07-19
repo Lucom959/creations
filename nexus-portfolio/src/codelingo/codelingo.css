@@ -367,6 +367,71 @@
   font-size: 1.05rem;
   animation: cl-letter-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+/* Nome do usuário na barra superior — some em telas pequenas para não
+   espremer os outros indicadores (streak/XP/liga já ocupam bastante). */
+.cl-username-desktop { display: none; }
+@media (min-width: 640px) {
+  .cl-username-desktop { display: inline; }
+}
+
+/* Entrada escalonada de cards em listas/grades — aplique junto com um
+   --cl-stagger inline (ex.: style={{ '--cl-stagger': `${i * 0.06}s` }}). */
+@keyframes cl-card-enter {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.cl-stagger-in {
+  animation: cl-card-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--cl-stagger, 0s);
+}
+
+/* Badge de status de unidade na árvore de aprendizado */
+.cl-unit-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.cl-unit-status.done { background: rgba(255, 193, 7, 0.16); color: var(--cl-amber); border: 1px solid var(--cl-amber-700); }
+.cl-unit-status.active { background: rgba(255, 193, 7, 0.08); color: var(--cl-text); border: 1px solid var(--cl-amber); }
+.cl-unit-status.locked { background: var(--cl-glass); color: var(--cl-muted); border: 1px solid var(--cl-border); }
+
+/* Linha vertical conectando unidades na árvore do curso */
+.cl-unit-connector {
+  width: 3px;
+  height: 22px;
+  margin-left: 21px;
+  border-radius: 2px;
+  background: var(--cl-border);
+  transition: background 0.3s ease;
+}
+.cl-unit-connector.done { background: linear-gradient(180deg, var(--cl-amber-700), var(--cl-amber)); }
+
+/* Medalha de unidade concluída */
+.cl-unit-medal {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--cl-amber-light), var(--cl-amber-600));
+  color: #1a1200;
+  font-size: 0.8rem;
+  box-shadow: 0 2px 0 var(--cl-amber-800);
+  animation: cl-pop 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Transição de página leve — fade + slide sutil para trocas de tela */
+@keyframes cl-page-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.cl-page-in { animation: cl-page-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .cl-example-code {
   animation: cl-fade-up 0.5s 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
 }

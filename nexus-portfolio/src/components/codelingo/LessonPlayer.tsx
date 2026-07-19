@@ -7,7 +7,7 @@ import { getCode } from "@/codelingo/codes";
 import { Exercise } from "@/codelingo/exercises";
 import { buildLesson, checkExercise, getCourseSteps, TeachCard } from "@/codelingo/curriculum";
 import { ACHIEVEMENTS } from "@/codelingo/achievements";
-import { useStore } from "@/codelingo/store";
+import { useStore, courseLessonsDone } from "@/codelingo/store";
 import { sfx, playMorse, resumeAudio } from "@/codelingo/sound";
 import Confetti from "./Confetti";
 import { SemaphoreDiagram, PigpenDiagram } from "./CodeDiagrams";
@@ -17,7 +17,7 @@ import DragExercise from "./DragExercise";
 export default function LessonPlayer({ id }: { id: string }) {
   const router = useRouter();
   const search = useSearchParams();
-  const { completeLesson, weakLettersFor, recordMiss } = useStore();
+  const { p, completeLesson, weakLettersFor, recordMiss, courseProgress } = useStore();
   const code = getCode(id);
   const steps = useMemo(() => getCourseSteps(id), [id]);
   const stepId = search.get("type") || steps[0]?.id;
@@ -37,6 +37,7 @@ export default function LessonPlayer({ id }: { id: string }) {
   const [feedback, setFeedback] = useState<null | "correct" | "wrong">(null);
   const [done, setDone] = useState(false);
   const [result, setResult] = useState<ReturnType<typeof completeLesson> | null>(null);
+  const [lastTimeSec, setLastTimeSec] = useState(0);
   const startRef = useRef<number>(Date.now());
   const finishedRef = useRef(false);
 
@@ -45,6 +46,23 @@ export default function LessonPlayer({ id }: { id: string }) {
     setText("");
     setFeedback(null);
   }, [index]);
+
+  // CORREÇÃO CRÍTICA: ao avançar para a próxima lição, a URL muda (?type=...)
+  // mas o componente NÃO é remontado (mesma rota dinâmica /lesson/[id]) — sem
+  // este reset, o estado "done"/"result" da lição anterior ficava preso e a
+  // tela de conclusão antiga reaparecia em vez de abrir a próxima lição.
+  useEffect(() => {
+    setCardIdx(0);
+    setIndex(0);
+    setCorrectCount(0);
+    setSelected(null);
+    setText("");
+    setFeedback(null);
+    setDone(false);
+    setResult(null);
+    finishedRef.current = false;
+    startRef.current = Date.now();
+  }, [stepId]);
 
   if (!code || !lesson || !step) {
     return (
@@ -70,6 +88,7 @@ export default function LessonPlayer({ id }: { id: string }) {
     const timeSec = Math.round((Date.now() - startRef.current) / 1000);
     const res = completeLesson(id, step.id, finalCorrect, total, timeSec);
     setResult(res);
+    setLastTimeSec(timeSec);
     setDone(true);
     resumeAudio();
     sfx.complete();
@@ -112,6 +131,12 @@ export default function LessonPlayer({ id }: { id: string }) {
     const total = isLearn ? 0 : exercises.length;
     const accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 100;
     const nextStep = steps[stepIndex + 1];
+    const cp = courseProgress(id);
+    const courseDone = courseLessonsDone(id, cp);
+    const coursePct = steps.length > 0 ? courseDone / steps.length : 0;
+    const mm = Math.floor(lastTimeSec / 60);
+    const ss = lastTimeSec % 60;
+    const timeLabel = mm > 0 ? `${mm}m ${ss}s` : `${ss}s`;
     return (
       <>
         <Confetti show />
@@ -122,10 +147,19 @@ export default function LessonPlayer({ id }: { id: string }) {
           </h1>
           <p className="cl-muted" style={{ marginTop: 4 }}>{code.icon} {code.name} · {step.unitTitle} · {step.title}</p>
 
-          <div style={{ display: "grid", gridTemplateColumns: isLearn ? "1fr" : "repeat(3,1fr)", gap: 10, marginTop: 20 }}>
-            <Stat label="XP ganho" value={`+${result.xpGained}`} />
-            {!isLearn && <Stat label="Acertos" value={`${correctCount}/${total}`} />}
-            {!isLearn && <Stat label="Precisão" value={`${accuracy}%`} />}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 20 }}>
+            <Stat label="XP ganho" value={`+${result.xpGained}`} icon="⭐" delay={0} />
+            {!isLearn && <Stat label="Precisão" value={`${accuracy}%`} icon="🎯" delay={0.08} />}
+            <Stat label="Tempo" value={timeLabel} icon="⏱" delay={0.16} />
+            <Stat label="Sequência" value={`${p.streak}d`} icon="🔥" delay={0.24} />
+          </div>
+
+          <div style={{ marginTop: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", marginBottom: 6 }}>
+              <span className="cl-muted">Progresso do curso</span>
+              <span className="cl-amber" style={{ fontWeight: 700 }}>{courseDone}/{steps.length}</span>
+            </div>
+            <div className="cl-progress"><span style={{ width: `${coursePct * 100}%` }} /></div>
           </div>
 
           {result.newLevel && (
@@ -234,19 +268,23 @@ export default function LessonPlayer({ id }: { id: string }) {
   }
 
   const isInteractiveKind = ex?.kind === "match" || ex?.kind === "drag";
+  const kindIcon: Record<string, string> = {
+    multiple: "🔎", encode: "✍️", decode: "🔓", audio: "🎧", match: "🔗", drag: "🫳",
+  };
 
   // ---- Render: EXERCÍCIOS ----
   return (
     <div className="cl-fade-up" style={{ maxWidth: 640, margin: "0 auto" }}>
       {header}
       {ex && (
-        <div key={ex.id} className="cl-fade-up">
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <div key={ex.id} className="cl-card cl-fade-up" style={{ padding: "26px 24px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <span style={{ fontSize: "1.6rem" }}>{kindIcon[ex.kind] ?? "✨"}</span>
             <span className="cl-chip">{step.icon} {step.title}</span>
             {ex.guided && <span className="cl-chip cl-amber">guiado</span>}
           </div>
-          <h2 className="cl-display" style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: 6 }}>{ex.prompt}</h2>
-          {ex.hint && feedback === null && <p className="cl-muted" style={{ fontSize: "0.78rem", marginBottom: 14 }}>💡 {ex.hint}</p>}
+          <h2 className="cl-display" style={{ fontSize: "1.3rem", fontWeight: 700, marginBottom: 8 }}>{ex.prompt}</h2>
+          {ex.hint && feedback === null && <p className="cl-muted" style={{ fontSize: "0.78rem", marginBottom: 16 }}>💡 {ex.hint}</p>}
 
           {ex.subject && (
             <div className="cl-surface" style={{ borderRadius: 14, padding: "16px 18px", marginBottom: 18, fontFamily: "var(--font-grotesk)", fontSize: "1.3rem", fontWeight: 700, wordBreak: "break-word", textAlign: "center", letterSpacing: "0.02em" }}>
@@ -314,8 +352,11 @@ export default function LessonPlayer({ id }: { id: string }) {
           )}
 
           {feedback && (
-            <div className="cl-fade-up" style={{ marginTop: 16, padding: "12px 14px", borderRadius: 12, background: feedback === "correct" ? "rgba(255,193,7,0.1)" : "rgba(217,101,78,0.12)", border: `1px solid ${feedback === "correct" ? "var(--cl-amber)" : "var(--cl-err)"}` }}>
-              <strong className={feedback === "correct" ? "cl-amber" : ""}>{feedback === "correct" ? "✅ Correto!" : "❌ Quase!"}</strong>
+            <div className="cl-fade-up" style={{ marginTop: 16, padding: "14px 16px", borderRadius: 12, background: feedback === "correct" ? "rgba(255,193,7,0.1)" : "rgba(217,101,78,0.12)", border: `1px solid ${feedback === "correct" ? "var(--cl-amber)" : "var(--cl-err)"}` }}>
+              <strong className={`cl-pop ${feedback === "correct" ? "cl-amber" : ""}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: "1.02rem" }}>
+                <span style={{ fontSize: "1.3rem" }}>{feedback === "correct" ? "✅" : "❌"}</span>
+                {feedback === "correct" ? "Correto!" : "Quase!"}
+              </strong>
               {feedback === "wrong" && !isInteractiveKind && <div style={{ fontSize: "0.85rem", marginTop: 4 }}>A resposta certa é <strong className="cl-amber">{ex.answer}</strong>.</div>}
               {ex.explain && <div className="cl-muted" style={{ fontSize: "0.82rem", marginTop: 4, wordBreak: "break-word" }}>{ex.explain}</div>}
               {ex.guided && ex.breakdown && (
@@ -398,11 +439,12 @@ function ExampleView({ plain, encoded, morse }: { plain: string; encoded: string
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, icon, delay = 0 }: { label: string; value: string; icon?: string; delay?: number }) {
   return (
-    <div className="cl-surface" style={{ borderRadius: 12, padding: "12px 8px" }}>
-      <div className="cl-display cl-amber" style={{ fontWeight: 800, fontSize: "1.2rem" }}>{value}</div>
-      <div className="cl-muted" style={{ fontSize: "0.7rem" }}>{label}</div>
+    <div className="cl-surface cl-pop" style={{ borderRadius: 12, padding: "12px 6px", animationDelay: `${delay}s` }}>
+      {icon && <div style={{ fontSize: "1rem", marginBottom: 2 }}>{icon}</div>}
+      <div className="cl-display cl-amber" style={{ fontWeight: 800, fontSize: "1.05rem" }}>{value}</div>
+      <div className="cl-muted" style={{ fontSize: "0.65rem" }}>{label}</div>
     </div>
   );
 }

@@ -110,6 +110,30 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             <span className="cl-chip" title={`Liga ${league.name} · Nível ${level}`}>
               {league.icon} <span className="cl-amber">Nv {level}</span>
             </span>
+            <Link
+              href="/codelingo/profile"
+              aria-label="Perfil e configurações"
+              title={ready ? p.name : "Perfil"}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                textDecoration: "none",
+                color: "inherit",
+                border: "1px solid var(--cl-border)",
+                borderRadius: 9999,
+                padding: "3px 10px 3px 3px",
+                transition: "border-color 0.2s ease, transform 0.2s ease",
+              }}
+              className="cl-node-hover"
+            >
+              <span style={{ width: 28, height: 28, borderRadius: "50%", display: "grid", placeItems: "center", background: "var(--cl-surface)", fontSize: "1rem" }}>
+                {ready ? p.avatar : "🕵️"}
+              </span>
+              <span className="cl-username-desktop cl-display" style={{ fontSize: "0.8rem", fontWeight: 700 }}>
+                {ready ? p.name : "Agente"}
+              </span>
+            </Link>
             <button
               type="button"
               aria-label="Alternar som"

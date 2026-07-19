@@ -66,30 +66,40 @@ export default function CourseDetailPage() {
       </div>
 
       {/* Árvore do curso, agrupada por unidade */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+      <div style={{ display: "flex", flexDirection: "column" }}>
         {Array.from({ length: units }, (_, unitIndex) => {
           const unitSteps = stepsForUnit(code.id, unitIndex);
           const unitDone = unitSteps.filter((s) => cp?.lessons[s.id]?.completed).length;
           const unitTotal = unitSteps.length;
+          const unitComplete = unitDone === unitTotal;
+          const unitActive = !unitComplete && unitDone > 0;
+          const unitStatus = unitComplete ? "done" : unitActive ? "active" : "locked";
+          const statusLabel = unitComplete ? "Concluída" : unitActive ? "Em andamento" : unitIndex === 0 ? "Em andamento" : "Bloqueada";
           return (
-            <div key={unitIndex}>
+            <div key={unitIndex} className="cl-stagger-in" style={{ ["--cl-stagger" as string]: `${unitIndex * 0.05}s`, marginBottom: 20 }}>
+              {unitIndex > 0 && <div className={`cl-unit-connector ${units > 0 && Array.from({ length: unitIndex }).every((_, i) => stepsForUnit(code.id, i).every((s) => cp?.lessons[s.id]?.completed)) ? "done" : ""}`} />}
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
                 <span style={{ fontSize: "1.4rem" }}>{unitSteps[0].unitIcon}</span>
                 <div style={{ flex: 1 }}>
                   <div className="cl-display" style={{ fontWeight: 700, fontSize: "1.05rem" }}>
                     Unidade {unitIndex + 1} · {unitSteps[0].unitTitle}
                   </div>
+                  <span className={`cl-unit-status ${unitStatus}`}>
+                    {unitComplete ? "✅" : unitActive || unitIndex === 0 ? "▶" : "🔒"} {statusLabel}
+                  </span>
                 </div>
+                {unitComplete && <span className="cl-unit-medal" title="Unidade concluída">🏅</span>}
                 <span className="cl-chip">{unitDone}/{unitTotal}</span>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingLeft: 8, borderLeft: "2px solid var(--cl-border)" }}>
-                {unitSteps.map((step) => {
+                {unitSteps.map((step, stepInUnitIdx) => {
                   const globalIndex = steps.findIndex((s) => s.id === step.id);
                   const unlocked = ready ? isLessonUnlocked(code.id, step.id) : globalIndex === 0;
                   const stepDone = !!cp?.lessons[step.id]?.completed;
                   const score = cp?.lessons[step.id]?.bestScore;
-                  const classes = `cl-lesson-row ${unlocked ? "cl-lesson-unlocked" : "cl-lesson-locked"} ${stepDone ? "cl-lesson-done" : ""}`;
+                  const classes = `cl-lesson-row cl-stagger-in ${unlocked ? "cl-lesson-unlocked" : "cl-lesson-locked"} ${stepDone ? "cl-lesson-done" : ""}`;
+                  const rowStyle = { textDecoration: "none", color: "inherit", ["--cl-stagger" as string]: `${(unitIndex * 0.05) + (stepInUnitIdx * 0.04)}s` };
                   const inner = (
                     <>
                       <div className="cl-lesson-icon">{unlocked ? step.icon : "🔒"}</div>
@@ -105,11 +115,11 @@ export default function CourseDetailPage() {
                     </>
                   );
                   return unlocked ? (
-                    <Link key={step.id} href={`/codelingo/lesson/${code.id}?type=${step.id}`} className={classes} style={{ textDecoration: "none", color: "inherit" }}>
+                    <Link key={step.id} href={`/codelingo/lesson/${code.id}?type=${step.id}`} className={classes} style={rowStyle}>
                       {inner}
                     </Link>
                   ) : (
-                    <div key={step.id} className={classes} title="Conclua a lição anterior para desbloquear">{inner}</div>
+                    <div key={step.id} className={classes} style={rowStyle} title="Conclua a lição anterior para desbloquear">{inner}</div>
                   );
                 })}
               </div>

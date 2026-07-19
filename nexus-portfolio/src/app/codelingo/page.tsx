@@ -40,6 +40,13 @@ export default function Dashboard() {
 
   const completedCourses = CODES.filter((c) => isCourseComplete(c.id, p.courses[c.id]));
 
+  // Progresso geral: lições concluídas em todos os cursos / total de lições existentes.
+  const overallPct = useMemo(() => {
+    const totalAll = CODES.reduce((s, c) => s + getCourseSteps(c.id).length, 0);
+    const doneAll = CODES.reduce((s, c) => s + courseLessonsDone(c.id, p.courses[c.id]), 0);
+    return totalAll > 0 ? doneAll / totalAll : 0;
+  }, [p.courses]);
+
   // Recomendação de revisão: cursos com pior desempenho entre os já iniciados
   const reviewSuggestions = useMemo(() => {
     return CODES.filter((c) => {
@@ -89,23 +96,25 @@ export default function Dashboard() {
           </ProgressRing>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(92px, 1fr))", gap: 10 }}>
           <Metric icon="🔥" label="Sequência" value={`${p.streak}d`} />
           <Metric icon="⚡" label="XP total" value={`${p.xp}`} />
           <Metric icon="✅" label="Cursos" value={`${completedCourses.length}/${CODES.length}`} />
+          <Metric icon="📈" label="Progresso geral" value={`${Math.round(overallPct * 100)}%`} />
           <Metric icon="🏅" label="Conquistas" value={`${unlockedAch.length}/${ACHIEVEMENTS.length}`} />
         </div>
 
+        {/* Botão grande de continuar — a ação principal da Home */}
+        {lastCode && lastNextStep ? (
+          <Link href={`/codelingo/lesson/${lastCode.id}?type=${lastNextStep.id}`} className="cl-btn cl-btn-amber cl-glow" style={{ padding: "18px 24px", fontSize: "1.05rem", width: "100%" }}>
+            ▶ Continuar aprendendo — {lastCode.icon} {lastCode.name}
+          </Link>
+        ) : (
+          <Link href="/codelingo/courses" className="cl-btn cl-btn-amber cl-glow" style={{ padding: "18px 24px", fontSize: "1.05rem", width: "100%" }}>
+            🚀 Começar a aprender agora
+          </Link>
+        )}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {lastCode && lastNextStep ? (
-            <Link href={`/codelingo/lesson/${lastCode.id}?type=${lastNextStep.id}`} className="cl-btn cl-btn-amber" style={{ padding: "12px 22px", fontSize: "0.95rem" }}>
-              ▶ Continuar de onde parei — {lastCode.icon} {lastCode.name}
-            </Link>
-          ) : (
-            <Link href="/codelingo/courses" className="cl-btn cl-btn-amber" style={{ padding: "12px 22px", fontSize: "0.95rem" }}>
-              🚀 Começar agora
-            </Link>
-          )}
           <Link href="/codelingo/courses" className="cl-btn cl-btn-ghost" style={{ padding: "12px 22px", fontSize: "0.95rem" }}>
             🗂️ Escolha um Código
           </Link>
@@ -122,13 +131,13 @@ export default function Dashboard() {
         <section style={{ marginBottom: 32 }}>
           <SectionHeader icon="📚" title="Continue aprendendo" href="/codelingo/courses" />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
-            {inProgress.map((code) => {
+            {inProgress.map((code, i) => {
               const cp = p.courses[code.id];
               const courseSteps = getCourseSteps(code.id);
               const done = courseLessonsDone(code.id, cp);
               const nextStep = courseSteps.find((s) => !cp?.lessons[s.id]?.completed);
               return (
-                <Link key={code.id} href={nextStep ? `/codelingo/lesson/${code.id}?type=${nextStep.id}` : `/codelingo/course/${code.id}`} className="cl-course-card" style={{ textDecoration: "none", color: "inherit" }}>
+                <Link key={code.id} href={nextStep ? `/codelingo/lesson/${code.id}?type=${nextStep.id}` : `/codelingo/course/${code.id}`} className="cl-course-card cl-stagger-in" style={{ textDecoration: "none", color: "inherit", ["--cl-stagger" as string]: `${i * 0.06}s` }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ fontSize: "1.8rem" }}>{code.icon}</span>
                     <span className="cl-chip">{done}/{courseSteps.length}</span>
@@ -203,8 +212,8 @@ export default function Dashboard() {
       <section style={{ marginBottom: 36 }}>
         <SectionHeader icon="🧭" title="Explore novos cursos" href="/codelingo/courses" />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
-          {CODES.filter((c) => !p.courses[c.id]).slice(0, 4).map((code) => (
-            <Link key={code.id} href={`/codelingo/course/${code.id}`} className="cl-course-card" style={{ textDecoration: "none", color: "inherit" }}>
+          {CODES.filter((c) => !p.courses[c.id]).slice(0, 4).map((code, i) => (
+            <Link key={code.id} href={`/codelingo/course/${code.id}`} className="cl-course-card cl-stagger-in" style={{ textDecoration: "none", color: "inherit", ["--cl-stagger" as string]: `${i * 0.06}s` }}>
               <span style={{ fontSize: "1.8rem" }}>{code.icon}</span>
               <div className="cl-display" style={{ fontWeight: 700, fontSize: "0.95rem" }}>{code.name}</div>
               <div className="cl-muted" style={{ fontSize: "0.72rem" }}>{"⭐".repeat(code.difficulty)}</div>
