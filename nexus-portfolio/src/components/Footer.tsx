@@ -13,7 +13,7 @@ const socials = [
 export default function Footer() {
   const pathname = usePathname();
   const year = 2026;
-  if (pathname.startsWith("/codelingo")) return null;
+  if (pathname.startsWith("/codelingo") || pathname.startsWith("/skilltree")) return null;
   return (
     <footer
       id="contact"
