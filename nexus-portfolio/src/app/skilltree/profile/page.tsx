@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSkillTree, levelFromXp } from "@/skilltree/store";
 import { SKILLS } from "@/skilltree/skills";
 import { ACHIEVEMENTS } from "@/skilltree/achievements";
+import { getMuted, setMuted, sfx, resumeAudio } from "@/skilltree/sound";
 
 const AVATARS = ["🧑‍🚀", "🧙", "🦾", "🐉", "🛰️", "🔮", "🧬", "⚔️", "🕶️", "👾", "🦉", "🌠"];
 
@@ -14,6 +15,8 @@ export default function ProfilePage() {
   const { p, setProfile, setDailyGoal, logout, reset, achievementInput } = useSkillTree();
   const [name, setName] = useState(p.profile.name);
   const [editing, setEditing] = useState(false);
+  const [muted, setMutedState] = useState(true);
+  useEffect(() => setMutedState(getMuted()), []);
 
   const level = levelFromXp(p.xp);
   const unlockedAch = ACHIEVEMENTS.filter((a) => a.check(achievementInput)).length;
@@ -63,14 +66,37 @@ export default function ProfilePage() {
 
       <section className="st-card" style={{ padding: 20 }}>
         <h2 className="st-display" style={{ fontSize: "1.05rem", fontWeight: 700, marginBottom: 14 }}>⚙️ Configurações</h2>
-        <div style={{ marginBottom: 16 }}>
-          <div className="st-muted" style={{ fontSize: "0.8rem", marginBottom: 8 }}>Meta diária de estudo</div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {[10, 20, 40, 60].map((m) => (
-              <button key={m} type="button" onClick={() => setDailyGoal(m)} className="st-btn" style={{ padding: "8px 16px", border: `2px solid ${p.dailyGoalMinutes === m ? "var(--st-cyan)" : "var(--st-border)"}`, background: p.dailyGoalMinutes === m ? "rgba(34,211,238,0.08)" : "transparent", color: "var(--st-text)" }}>{m} min</button>
-            ))}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+            <span className="st-muted" style={{ fontSize: "0.8rem" }}>Meta diária de estudo</span>
+            <span className="st-cyan" style={{ fontSize: "0.82rem", fontWeight: 700 }}>{p.dailyGoalMinutes} min</span>
           </div>
+          <input
+            type="range"
+            className="st-slider"
+            min={5}
+            max={120}
+            step={5}
+            value={p.dailyGoalMinutes}
+            onChange={(e) => setDailyGoal(Number(e.target.value))}
+          />
         </div>
+
+        <label className="st-switch" style={{ marginBottom: 20 }}>
+          <input
+            type="checkbox"
+            checked={!muted}
+            onChange={() => {
+              const nm = !muted;
+              setMuted(nm);
+              setMutedState(nm);
+              if (!nm) { resumeAudio(); sfx.click(); }
+            }}
+          />
+          <span className="st-track" />
+          Sons da plataforma
+        </label>
+
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button type="button" onClick={() => { logout(); router.push("/skilltree/login"); }} className="st-btn st-btn-ghost" style={{ padding: "10px 16px" }}>Sair (trocar perfil local)</button>
           <button type="button" onClick={() => { if (confirm("Apagar todo o progresso? Isso não pode ser desfeito.")) { reset(); router.push("/skilltree/login"); } }} className="st-btn st-btn-ghost" style={{ padding: "10px 16px", borderColor: "var(--st-err)", color: "var(--st-err)" }}>🗑️ Zerar progresso</button>
